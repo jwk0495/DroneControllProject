@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using System.Collections;
 
 public class ZLiftTrigger : MonoBehaviour
@@ -10,16 +10,16 @@ public class ZLiftTrigger : MonoBehaviour
     public ChainMove CHM;
     public ChainMove CHM1;
 
-    // ActUtlManager ÀÎ½ºÅÏ½º ÂüÁ¶
+    // ActUtlManager ì¸ìŠ¤í„´ìŠ¤ ì°¸ì¡°
     public ActUtlManager actUtlManager;
 
     public float moveSpeed = 0.2f;
 
-    private float[] liftWeightMoveDistancesUp = { -1.725f, -1.24f, -0.5f, -2.5f };
-    private float[] liftWeightMoveDistancesDown = { 0.7977f, 0.318f + 0.022597f, 0.5f, 0.5f };
+    private float[] liftWeightMoveDistancesUp = { -1.72f, -1.24f, -0.318f - 0.022097f, -2.5f };
+    private float[] liftWeightMoveDistancesDown = { 0.7977f, 0.318f + 0.022597f, 0.5f + 0.708f + 0.014f, 0.5f };
 
-    private float[] carriageFrameMoveDistancesUp = { 1.725f, 1.24f, 0.5f, 2.5f };
-    private float[] carriageFrameMoveDistancesDown = { -0.7977f, -0.318f - 0.022597f, -0.5f, -0.5f };
+    private float[] carriageFrameMoveDistancesUp = { 1.72f, 1.24f, 0.318f + 0.022507f, 2.5f }; // Y4
+    private float[] carriageFrameMoveDistancesDown = { -0.7977f, -0.318f - 0.022597f, -0.5f-0.708f - 0.014f, -0.5f }; // Y5
 
     private Vector3 currentLWLocalTargetPosition;
     private Vector3 currentCFLocalTargetPosition;
@@ -35,8 +35,8 @@ public class ZLiftTrigger : MonoBehaviour
     void Update() { }
 
     /// <summary>
-    /// ZLift¸¦ 'À§' (LiftWeight ZÃà À½¼ö, CarriageFrame ZÃà ¾ç¼ö)·Î ÀÌµ¿ÇÏ´Â ÇÁ·Î¼¼½º¸¦ ½ÃÀÛÇÕ´Ï´Ù.
-    /// ¹è¿­¿¡ Á¤ÀÇµÈ ´ÙÀ½ °Å¸®¸¸Å­ ÀÌµ¿ÇÕ´Ï´Ù.
+    /// ZLiftë¥¼ 'ìœ„' (LiftWeight Zì¶• ìŒìˆ˜, CarriageFrame Zì¶• ì–‘ìˆ˜)ë¡œ ì´ë™í•˜ëŠ” í”„ë¡œì„¸ìŠ¤ë¥¼ ì‹œì‘í•©ë‹ˆë‹¤.
+    /// ë°°ì—´ì— ì •ì˜ëœ ë‹¤ìŒ ê±°ë¦¬ë§Œí¼ ì´ë™í•©ë‹ˆë‹¤.
     /// </summary>
     public void ActivateZLiftUp()
     {
@@ -45,7 +45,7 @@ public class ZLiftTrigger : MonoBehaviour
         if (currentUpMoveIndex >= liftWeightMoveDistancesUp.Length)
         {
             currentUpMoveIndex = 0;
-            Debug.Log("ZLiftUp ÀÌµ¿ »çÀÌÅ¬ ¿Ï·á, ÀÎµ¦½º Àç¼³Á¤.");
+            Debug.Log("ZLiftUp ì´ë™ ì‚¬ì´í´ ì™„ë£Œ, ì¸ë±ìŠ¤ ì¬ì„¤ì •.");
         }
 
         isZLiftUpActive = true;
@@ -61,7 +61,7 @@ public class ZLiftTrigger : MonoBehaviour
         CHM.ActiveChainCW();
         CHM1.ActiveChainCW();
 
-        // --- ¼öÁ¤µÈ ºÎºĞ: ¿òÁ÷ÀÓ ½ÃÀÛ ½Ã X4:1 ½ÅÈ£ Àü¼Û ---
+        // --- ìˆ˜ì •ëœ ë¶€ë¶„: ì›€ì§ì„ ì‹œì‘ ì‹œ X4:1 ì‹ í˜¸ ì „ì†¡ ---
         if (actUtlManager != null)
         {
             actUtlManager.SendCommandToPlc("X4:0");
@@ -69,7 +69,7 @@ public class ZLiftTrigger : MonoBehaviour
     }
 
     /// <summary>
-    /// ZLift 'À§'·Î ÀÌµ¿À» ºñÈ°¼ºÈ­ÇÕ´Ï´Ù. (¼öµ¿ Áß´ÜÀ» À§ÇÑ ÇÔ¼ö)
+    /// ZLift 'ìœ„'ë¡œ ì´ë™ì„ ë¹„í™œì„±í™”í•©ë‹ˆë‹¤. (ìˆ˜ë™ ì¤‘ë‹¨ì„ ìœ„í•œ í•¨ìˆ˜)
     /// </summary>
     public void DeactivateZLiftUp()
     {
@@ -85,19 +85,19 @@ public class ZLiftTrigger : MonoBehaviour
             CHM.DeActiveChainCW();
             CHM1.DeActiveChainCW();
 
-            // --- ¼öÁ¤µÈ ºÎºĞ: ¼öµ¿ ºñÈ°¼ºÈ­ ½Ã X6:0 ½ÅÈ£ Àü¼Û ---
+            // --- ìˆ˜ì •ëœ ë¶€ë¶„: ìˆ˜ë™ ë¹„í™œì„±í™” ì‹œ X6:0 ì‹ í˜¸ ì „ì†¡ ---
             if (actUtlManager != null)
             {
                 actUtlManager.SendCommandToPlc("X4:1"); 
             }
-            // --- ¼öÁ¤µÈ ºÎºĞ ³¡ ---
-            Debug.Log("ZLiftUp ¼öµ¿ ºñÈ°¼ºÈ­. ÀÌµ¿ ÁßÁö.");
+            // --- ìˆ˜ì •ëœ ë¶€ë¶„ ë ---
+            Debug.Log("ZLiftUp ìˆ˜ë™ ë¹„í™œì„±í™”. ì´ë™ ì¤‘ì§€.");
         }
     }
 
     /// <summary>
-    /// ZLift¸¦ '¾Æ·¡' (LiftWeight ZÃà ¾ç¼ö, CarriageFrame ZÃà À½¼ö)·Î ÀÌµ¿ÇÏ´Â ÇÁ·Î¼¼½º¸¦ ½ÃÀÛÇÕ´Ï´Ù.
-    /// ¹è¿­¿¡ Á¤ÀÇµÈ ´ÙÀ½ °Å¸®¸¸Å­ ÀÌµ¿ÇÕ´Ï´Ù.
+    /// ZLiftë¥¼ 'ì•„ë˜' (LiftWeight Zì¶• ì–‘ìˆ˜, CarriageFrame Zì¶• ìŒìˆ˜)ë¡œ ì´ë™í•˜ëŠ” í”„ë¡œì„¸ìŠ¤ë¥¼ ì‹œì‘í•©ë‹ˆë‹¤.
+    /// ë°°ì—´ì— ì •ì˜ëœ ë‹¤ìŒ ê±°ë¦¬ë§Œí¼ ì´ë™í•©ë‹ˆë‹¤.
     /// </summary>
     public void ActivateZLiftDown()
     {
@@ -106,7 +106,7 @@ public class ZLiftTrigger : MonoBehaviour
         if (currentDownMoveIndex >= liftWeightMoveDistancesDown.Length)
         {
             currentDownMoveIndex = 0;
-            Debug.Log("ZLiftDown ÀÌµ¿ »çÀÌÅ¬ ¿Ï·á, ÀÎµ¦½º Àç¼³Á¤.");
+            Debug.Log("ZLiftDown ì´ë™ ì‚¬ì´í´ ì™„ë£Œ, ì¸ë±ìŠ¤ ì¬ì„¤ì •.");
         }
 
         isZLiftDownActive = true;
@@ -122,7 +122,7 @@ public class ZLiftTrigger : MonoBehaviour
         CHM.ActiveChainCCW();
         CHM1.ActiveChainCCW();
 
-        // --- ¼öÁ¤µÈ ºÎºĞ: ¿òÁ÷ÀÓ ½ÃÀÛ ½Ã X6:1 ½ÅÈ£ Àü¼Û ---
+        // --- ìˆ˜ì •ëœ ë¶€ë¶„: ì›€ì§ì„ ì‹œì‘ ì‹œ X6:1 ì‹ í˜¸ ì „ì†¡ ---
         if (actUtlManager != null)
         {
             actUtlManager.SendCommandToPlc("X5:0"); 
@@ -130,7 +130,7 @@ public class ZLiftTrigger : MonoBehaviour
     }
 
     /// <summary>
-    /// ZLift '¾Æ·¡'·Î ÀÌµ¿À» ºñÈ°¼ºÈ­ÇÕ´Ï´Ù. (¼öµ¿ Áß´ÜÀ» À§ÇÑ ÇÔ¼ö)
+    /// ZLift 'ì•„ë˜'ë¡œ ì´ë™ì„ ë¹„í™œì„±í™”í•©ë‹ˆë‹¤. (ìˆ˜ë™ ì¤‘ë‹¨ì„ ìœ„í•œ í•¨ìˆ˜)
     /// </summary>
     public void DeactivateZLiftDown()
     {
@@ -146,22 +146,22 @@ public class ZLiftTrigger : MonoBehaviour
             CHM.DeActiveChainCCW();
             CHM1.DeActiveChainCCW();
 
-            // --- ¼öÁ¤µÈ ºÎºĞ: ¼öµ¿ ºñÈ°¼ºÈ­ ½Ã X6:0 ½ÅÈ£ Àü¼Û ---
+            // --- ìˆ˜ì •ëœ ë¶€ë¶„: ìˆ˜ë™ ë¹„í™œì„±í™” ì‹œ X6:0 ì‹ í˜¸ ì „ì†¡ ---
             if (actUtlManager != null)
             {
                 actUtlManager.SendCommandToPlc("X5:1"); 
-                Debug.Log("ZLiftTrigger: PLC¿¡ X6:0 (¸®ÇÁÆ® DOWN ¼öµ¿ ºñÈ°¼ºÈ­) ¸í·É Àü¼Û.");
+                Debug.Log("ZLiftTrigger: PLCì— X6:0 (ë¦¬í”„íŠ¸ DOWN ìˆ˜ë™ ë¹„í™œì„±í™”) ëª…ë ¹ ì „ì†¡.");
             }
-            // --- ¼öÁ¤µÈ ºÎºĞ ³¡ ---
+            // --- ìˆ˜ì •ëœ ë¶€ë¶„ ë ---
 
-            Debug.Log("ZLiftDown ¼öµ¿ ºñÈ°¼ºÈ­. ÀÌµ¿ ÁßÁö.");
+            Debug.Log("ZLiftDown ìˆ˜ë™ ë¹„í™œì„±í™”. ì´ë™ ì¤‘ì§€.");
         }
     }
 
     /// <summary>
-    /// LiftWeight¿Í CarriageFrameÀ» ÇöÀç ¸ñÇ¥ À§Ä¡(·ÎÄÃ ÁÂÇ¥)·Î ÀÌµ¿½ÃÅ°´Â ÄÚ·çÆ¾ÀÔ´Ï´Ù.
+    /// LiftWeightì™€ CarriageFrameì„ í˜„ì¬ ëª©í‘œ ìœ„ì¹˜(ë¡œì»¬ ì¢Œí‘œ)ë¡œ ì´ë™ì‹œí‚¤ëŠ” ì½”ë£¨í‹´ì…ë‹ˆë‹¤.
     /// </summary>
-    /// <param name="isUpDirection">'Up' ÀÌµ¿ÀÌ¸é true, 'Down' ÀÌµ¿ÀÌ¸é false.</param>
+    /// <param name="isUpDirection">'Up' ì´ë™ì´ë©´ true, 'Down' ì´ë™ì´ë©´ false.</param>
     private IEnumerator MoveZLiftToTarget(bool isUpDirection)
     {
         bool liftWeightReached = false;
@@ -176,7 +176,7 @@ public class ZLiftTrigger : MonoBehaviour
                 {
                     LiftWeight.transform.localPosition = currentLWLocalTargetPosition;
                     liftWeightReached = true;
-                    Debug.Log($"LiftWeight°¡ ·ÎÄÃ Z: {currentLWLocalTargetPosition.z}¿¡ µµÂøÇß½À´Ï´Ù.");
+                    Debug.Log($"LiftWeightê°€ ë¡œì»¬ Z: {currentLWLocalTargetPosition.z}ì— ë„ì°©í–ˆìŠµë‹ˆë‹¤.");
                 }
             }
 
@@ -187,46 +187,46 @@ public class ZLiftTrigger : MonoBehaviour
                 {
                     CarriageFrame.transform.localPosition = currentCFLocalTargetPosition;
                     carriageFrameReached = true;
-                    Debug.Log($"CarriageFrameÀÌ ·ÎÄÃ Z: {currentCFLocalTargetPosition.z}¿¡ µµÂøÇß½À´Ï´Ù.");
+                    Debug.Log($"CarriageFrameì´ ë¡œì»¬ Z: {currentCFLocalTargetPosition.z}ì— ë„ì°©í–ˆìŠµë‹ˆë‹¤.");
                 }
             }
 
             yield return null;
         }
 
-        // --- ÀÌµ¿ ¿Ï·á ÈÄ ÀÚµ¿ ºñÈ°¼ºÈ­ ·ÎÁ÷ ---
+        // --- ì´ë™ ì™„ë£Œ í›„ ìë™ ë¹„í™œì„±í™” ë¡œì§ ---
         if (isUpDirection)
         {
             currentUpMoveIndex++;
-            isZLiftUpActive = false; // <-- ¿©±â¼­ false·Î ¹Ù²ò´Ï´Ù.
+            isZLiftUpActive = false; // <-- ì—¬ê¸°ì„œ falseë¡œ ë°”ë€ë‹ˆë‹¤.
             ROT.DeactivateZLiftRotationCW();
             CHM.DeActiveChainCW();
             CHM1.DeActiveChainCW();
 
-            // --- ¼öÁ¤µÈ ºÎºĞ: µ¿ÀÛ ¿Ï·á ½Ã X6:0 ½ÅÈ£ Àü¼Û ---
+            // --- ìˆ˜ì •ëœ ë¶€ë¶„: ë™ì‘ ì™„ë£Œ ì‹œ X6:0 ì‹ í˜¸ ì „ì†¡ ---
             if (actUtlManager != null)
             {
                 actUtlManager.SendCommandToPlc("X4:1");
             }
-            // --- ¼öÁ¤µÈ ºÎºĞ ³¡ ---
-            Debug.Log("ZLiftUp ÀÌµ¿ ¿Ï·á ¹× ÀÚµ¿ ºñÈ°¼ºÈ­.");
+            // --- ìˆ˜ì •ëœ ë¶€ë¶„ ë ---
+            Debug.Log("ZLiftUp ì´ë™ ì™„ë£Œ ë° ìë™ ë¹„í™œì„±í™”.");
         }
         else
         {
             currentDownMoveIndex++;
-            isZLiftDownActive = false; // <-- ¿©±â¼­ false·Î ¹Ù²ò´Ï´Ù.
+            isZLiftDownActive = false; // <-- ì—¬ê¸°ì„œ falseë¡œ ë°”ë€ë‹ˆë‹¤.
             ROT.DeactivateZLiftRotationCCW();
             CHM.DeActiveChainCCW();
             CHM1.DeActiveChainCCW();
 
-            // --- ¼öÁ¤µÈ ºÎºĞ: µ¿ÀÛ ¿Ï·á ½Ã X6:0 ½ÅÈ£ Àü¼Û ---
+            // --- ìˆ˜ì •ëœ ë¶€ë¶„: ë™ì‘ ì™„ë£Œ ì‹œ X6:0 ì‹ í˜¸ ì „ì†¡ ---
             if (actUtlManager != null)
             {
-                //actUtlManager.SendCommandToPlc("X4:1"); // ¸®ÇÁÆ® µ¿ÀÛ ¿Ï·á¸¦ PLC¿¡ ¾Ë¸² (OFF)
+                //actUtlManager.SendCommandToPlc("X4:1"); // ë¦¬í”„íŠ¸ ë™ì‘ ì™„ë£Œë¥¼ PLCì— ì•Œë¦¼ (OFF)
                 actUtlManager.SendCommandToPlc("X5:1"); 
             }
-            // --- ¼öÁ¤µÈ ºÎºĞ ³¡ ---
-            Debug.Log("ZLiftDown ÀÌµ¿ ¿Ï·á ¹× ÀÚµ¿ ºñÈ°¼ºÈ­.");
+            // --- ìˆ˜ì •ëœ ë¶€ë¶„ ë ---
+            Debug.Log("ZLiftDown ì´ë™ ì™„ë£Œ ë° ìë™ ë¹„í™œì„±í™”.");
         }
         currentMovementCoroutine = null;
     }

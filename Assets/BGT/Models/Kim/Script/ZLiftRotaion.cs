@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 public class ZLiftRotation : MonoBehaviour
 {
@@ -15,10 +15,10 @@ public class ZLiftRotation : MonoBehaviour
     {
         if(isZLiftRotationCW && !isZLiftRotationCCW)
         {
-            // ÀÌ °ÔÀÓ ¿ÀºêÁ§Æ®¸¦ YÃàÀ» Áß½ÉÀ¸·Î 'rotationSpeed' ¸¸Å­ È¸Àü½ÃÅµ´Ï´Ù.
-            // Time.deltaTimeÀ» °öÇÏ¿© ÇÁ·¹ÀÓ ¼Óµµ¿¡ µ¶¸³ÀûÀÎ È¸ÀüÀ» º¸ÀåÇÕ´Ï´Ù.
-            // Space.Self´Â ¿ÀºêÁ§Æ® ÀÚ½ÅÀÇ ·ÎÄÃ YÃàÀ» ±âÁØÀ¸·Î È¸Àü½ÃÅµ´Ï´Ù.
-            // Space.World´Â ¿ùµå ÁÂÇ¥°èÀÇ YÃàÀ» ±âÁØÀ¸·Î È¸Àü½ÃÅµ´Ï´Ù.
+            // ì´ ê²Œì„ ì˜¤ë¸Œì íŠ¸ë¥¼ Yì¶•ì„ ì¤‘ì‹¬ìœ¼ë¡œ 'rotationSpeed' ë§Œí¼ íšŒì „ì‹œí‚µë‹ˆë‹¤.
+            // Time.deltaTimeì„ ê³±í•˜ì—¬ í”„ë ˆì„ ì†ë„ì— ë…ë¦½ì ì¸ íšŒì „ì„ ë³´ì¥í•©ë‹ˆë‹¤.
+            // Space.SelfëŠ” ì˜¤ë¸Œì íŠ¸ ìì‹ ì˜ ë¡œì»¬ Yì¶•ì„ ê¸°ì¤€ìœ¼ë¡œ íšŒì „ì‹œí‚µë‹ˆë‹¤.
+            // Space.WorldëŠ” ì›”ë“œ ì¢Œí‘œê³„ì˜ Yì¶•ì„ ê¸°ì¤€ìœ¼ë¡œ íšŒì „ì‹œí‚µë‹ˆë‹¤.
             Pulley1.transform.Rotate(0, rotationSpeed * Time.deltaTime, 0, Space.Self);
             Pulley2.transform.Rotate(0, rotationSpeed * Time.deltaTime, 0, Space.Self);
             Shaft.transform.Rotate(0, rotationSpeed * Time.deltaTime, 0, Space.Self);
@@ -26,10 +26,10 @@ public class ZLiftRotation : MonoBehaviour
 
         else if(!isZLiftRotationCW && isZLiftRotationCCW)
         {
-            // ÀÌ °ÔÀÓ ¿ÀºêÁ§Æ®¸¦ YÃàÀ» Áß½ÉÀ¸·Î 'rotationSpeed' ¸¸Å­ È¸Àü½ÃÅµ´Ï´Ù.
-            // Time.deltaTimeÀ» °öÇÏ¿© ÇÁ·¹ÀÓ ¼Óµµ¿¡ µ¶¸³ÀûÀÎ È¸ÀüÀ» º¸ÀåÇÕ´Ï´Ù.
-            // Space.Self´Â ¿ÀºêÁ§Æ® ÀÚ½ÅÀÇ ·ÎÄÃ YÃàÀ» ±âÁØÀ¸·Î È¸Àü½ÃÅµ´Ï´Ù.
-            // Space.World´Â ¿ùµå ÁÂÇ¥°èÀÇ YÃàÀ» ±âÁØÀ¸·Î È¸Àü½ÃÅµ´Ï´Ù.
+            // ì´ ê²Œì„ ì˜¤ë¸Œì íŠ¸ë¥¼ Yì¶•ì„ ì¤‘ì‹¬ìœ¼ë¡œ 'rotationSpeed' ë§Œí¼ íšŒì „ì‹œí‚µë‹ˆë‹¤.
+            // Time.deltaTimeì„ ê³±í•˜ì—¬ í”„ë ˆì„ ì†ë„ì— ë…ë¦½ì ì¸ íšŒì „ì„ ë³´ì¥í•©ë‹ˆë‹¤.
+            // Space.SelfëŠ” ì˜¤ë¸Œì íŠ¸ ìì‹ ì˜ ë¡œì»¬ Yì¶•ì„ ê¸°ì¤€ìœ¼ë¡œ íšŒì „ì‹œí‚µë‹ˆë‹¤.
+            // Space.WorldëŠ” ì›”ë“œ ì¢Œí‘œê³„ì˜ Yì¶•ì„ ê¸°ì¤€ìœ¼ë¡œ íšŒì „ì‹œí‚µë‹ˆë‹¤.
             Pulley1.transform.Rotate(0, -rotationSpeed * Time.deltaTime, 0, Space.Self);
             Pulley2.transform.Rotate(0, -rotationSpeed * Time.deltaTime, 0, Space.Self);
             Shaft.transform.Rotate(0, -rotationSpeed * Time.deltaTime, 0, Space.Self);

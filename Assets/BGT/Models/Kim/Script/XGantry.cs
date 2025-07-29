@@ -1,5 +1,5 @@
-using UnityEngine;
-using System.Collections; // ÄÚ·çÆ¾ »ç¿ëÀ» À§ÇØ Ãß°¡ÇØ¾ß ÇÕ´Ï´Ù.
+ï»¿using UnityEngine;
+using System.Collections; // ì½”ë£¨í‹´ ì‚¬ìš©ì„ ìœ„í•´ ì¶”ê°€í•´ì•¼ í•©ë‹ˆë‹¤.
 
 public class XGantry : MonoBehaviour
 {
@@ -8,71 +8,71 @@ public class XGantry : MonoBehaviour
     public XGantryRotaion RotaionObject;
     public Chain1 chainIntance;
 
-    // ActUtlManager ÀÎ½ºÅÏ½º ÂüÁ¶ Ãß°¡ (»õ·Ó°Ô Ãß°¡)
+    // ActUtlManager ì¸ìŠ¤í„´ìŠ¤ ì°¸ì¡° ì¶”ê°€ (ìƒˆë¡­ê²Œ ì¶”ê°€)
     public ActUtlManager actUtlManager;
 
-    // ÀÌµ¿ ¼Óµµ (ÃÊ´ç ÀÌµ¿ °Å¸®)
-    public float moveSpeed = 0.2f; // ÀÎ½ºÆåÅÍ¿¡¼­ ½±°Ô Á¶ÀıÇÒ ¼ö ÀÖµµ·Ï publicÀ¸·Î ¼³Á¤
+    // ì´ë™ ì†ë„ (ì´ˆë‹¹ ì´ë™ ê±°ë¦¬)
+    public float moveSpeed = 0.2f; // ì¸ìŠ¤í™í„°ì—ì„œ ì‰½ê²Œ ì¡°ì ˆí•  ìˆ˜ ìˆë„ë¡ publicìœ¼ë¡œ ì„¤ì •
 
-    // ·ÎÄÃ YÃà ÀÌµ¿ °Å¸®µé (µ¨Å¸ °ª)
-    // ¿À¸¥ÂÊ ÀÌµ¿ (YÃà À½¼ö ¹æÇâ)À» À§ÇÑ ÀÌµ¿ °Å¸®µé (¿¹: -3.0f¸é ÇöÀç À§Ä¡¿¡¼­ -3.0¸¸Å­ ÀÌµ¿)
-    private float[] moveDistancesRight = { -0.529f, -1.484753f+0.721753f, -0.263f, -0.48f, -0.96f, -0.48f }; // ¿À¸¥ÂÊ Y8
-    // ¿ŞÂÊ ÀÌµ¿ (YÃà ¾ç¼ö ¹æÇâ)À» À§ÇÑ ÀÌµ¿ °Å¸®µé (¿¹: 0.75f¸é ÇöÀç À§Ä¡¿¡¼­ +0.75¸¸Å­ ÀÌµ¿)
-    private float[] moveDistancesLeft = { 1.135f, 0.074f, 0.96f, 0.48f, 0.96f, 0.48f }; // ¿ŞÂÊ Y9
+    // ë¡œì»¬ Yì¶• ì´ë™ ê±°ë¦¬ë“¤ (ë¸íƒ€ ê°’)
+    // ì˜¤ë¥¸ìª½ ì´ë™ (Yì¶• ìŒìˆ˜ ë°©í–¥)ì„ ìœ„í•œ ì´ë™ ê±°ë¦¬ë“¤ (ì˜ˆ: -3.0fë©´ í˜„ì¬ ìœ„ì¹˜ì—ì„œ -3.0ë§Œí¼ ì´ë™)
+    private float[] moveDistancesRight = { -0.529f, -1.484753f+0.721753f, -0.263f + 0.038f, -1.185f + 0.018f ,0f}; // ì˜¤ë¥¸ìª½ Y8
+    // ì™¼ìª½ ì´ë™ (Yì¶• ì–‘ìˆ˜ ë°©í–¥)ì„ ìœ„í•œ ì´ë™ ê±°ë¦¬ë“¤ (ì˜ˆ: 0.75fë©´ í˜„ì¬ ìœ„ì¹˜ì—ì„œ +0.75ë§Œí¼ ì´ë™)
+    private float[] moveDistancesLeft = { 1.135f, 1.409f, 0.2f + 0.12f + 1.031f, 0f }; // ì™¼ìª½ Y9
 
-    // ÇöÀç È°¼º ÀÌµ¿À» À§ÇÑ ÃÖÁ¾ ¸ñÇ¥ À§Ä¡ (·ÎÄÃ ÁÂÇ¥)
+    // í˜„ì¬ í™œì„± ì´ë™ì„ ìœ„í•œ ìµœì¢… ëª©í‘œ ìœ„ì¹˜ (ë¡œì»¬ ì¢Œí‘œ)
     private Vector3 currentLocalTargetPosition;
 
-    // ÀÌµ¿ ¹æÇâ ÇÃ·¡±×
+    // ì´ë™ ë°©í–¥ í”Œë˜ê·¸
     private bool isMovingRight = false;
     private bool isMovingLeft = false;
 
-    // ¹è¿­¿¡¼­ ÇöÀç ÀÌµ¿ ´Ü°è¸¦ ÃßÀûÇÏ±â À§ÇÑ ÀÎµ¦½º
+    // ë°°ì—´ì—ì„œ í˜„ì¬ ì´ë™ ë‹¨ê³„ë¥¼ ì¶”ì í•˜ê¸° ìœ„í•œ ì¸ë±ìŠ¤
     private int currentRightMoveIndex = 0;
     private int currentLeftMoveIndex = 0;
 
-    // ÁøÇà ÁßÀÎ ÀÌµ¿À» ÁßÁöÇØ¾ß ÇÒ °æ¿ì¸¦ À§ÇÑ ÄÚ·çÆ¾ ÂüÁ¶
+    // ì§„í–‰ ì¤‘ì¸ ì´ë™ì„ ì¤‘ì§€í•´ì•¼ í•  ê²½ìš°ë¥¼ ìœ„í•œ ì½”ë£¨í‹´ ì°¸ì¡°
     private Coroutine currentMovementCoroutine;
 
-    // Update´Â ´õ ÀÌ»ó Á÷Á¢ÀûÀÎ ÀÌµ¿ ·ÎÁ÷À» ´ã´çÇÏÁö ¾Ê½À´Ï´Ù.
-    // ÀÌµ¿ ·ÎÁ÷Àº ÀÌÁ¦ ÄÚ·çÆ¾¿¡¼­ Ã³¸®µË´Ï´Ù.
+    // UpdateëŠ” ë” ì´ìƒ ì§ì ‘ì ì¸ ì´ë™ ë¡œì§ì„ ë‹´ë‹¹í•˜ì§€ ì•ŠìŠµë‹ˆë‹¤.
+    // ì´ë™ ë¡œì§ì€ ì´ì œ ì½”ë£¨í‹´ì—ì„œ ì²˜ë¦¬ë©ë‹ˆë‹¤.
     void Update()
     {
-        // ÇÊ¿äÇÏ´Ù¸é µğ¹ö±ëÀÌ³ª ´Ù¸¥ ¿¬¼ÓÀûÀÎ °Ë»ç¿¡ Update¸¦ »ç¿ëÇÒ ¼ö ÀÖÁö¸¸,
-        // Á÷Á¢ÀûÀÎ ÀÌµ¿ ·ÎÁ÷Àº ÄÚ·çÆ¾À¸·Î ¿Å°ÜÁ³½À´Ï´Ù.
+        // í•„ìš”í•˜ë‹¤ë©´ ë””ë²„ê¹…ì´ë‚˜ ë‹¤ë¥¸ ì—°ì†ì ì¸ ê²€ì‚¬ì— Updateë¥¼ ì‚¬ìš©í•  ìˆ˜ ìˆì§€ë§Œ,
+        // ì§ì ‘ì ì¸ ì´ë™ ë¡œì§ì€ ì½”ë£¨í‹´ìœ¼ë¡œ ì˜®ê²¨ì¡ŒìŠµë‹ˆë‹¤.
     }
 
     /// <summary>
-    /// '¿À¸¥ÂÊ' (Y ·ÎÄÃ À§Ä¡ °¨¼Ò, À½¼ö ¹æÇâ) ÀÌµ¿ ÇÁ·Î¼¼½º¸¦ ½ÃÀÛÇÕ´Ï´Ù.
-    /// moveDistancesRight ¹è¿­¿¡ Á¤ÀÇµÈ ´ÙÀ½ °Å¸®¸¸Å­ ÀÌµ¿ÇÕ´Ï´Ù.
+    /// 'ì˜¤ë¥¸ìª½' (Y ë¡œì»¬ ìœ„ì¹˜ ê°ì†Œ, ìŒìˆ˜ ë°©í–¥) ì´ë™ í”„ë¡œì„¸ìŠ¤ë¥¼ ì‹œì‘í•©ë‹ˆë‹¤.
+    /// moveDistancesRight ë°°ì—´ì— ì •ì˜ëœ ë‹¤ìŒ ê±°ë¦¬ë§Œí¼ ì´ë™í•©ë‹ˆë‹¤.
     /// </summary>
     public void ActivateXGantryMovingRight()
     {
-        // ÀÌ¹Ì ´Ù¸¥ ¹æÇâÀ¸·Î ¿òÁ÷ÀÌ°Å³ª °°Àº ¹æÇâÀ¸·Î ¿òÁ÷ÀÌ°í ÀÖ´Ù¸é »õ·Î¿î ÀÌµ¿À» ½ÃÀÛÇÏÁö ¾ÊÀ½
+        // ì´ë¯¸ ë‹¤ë¥¸ ë°©í–¥ìœ¼ë¡œ ì›€ì§ì´ê±°ë‚˜ ê°™ì€ ë°©í–¥ìœ¼ë¡œ ì›€ì§ì´ê³  ìˆë‹¤ë©´ ìƒˆë¡œìš´ ì´ë™ì„ ì‹œì‘í•˜ì§€ ì•ŠìŒ
         if (isMovingRight || isMovingLeft) return;
 
-        // ÀÌ ¹æÇâÀÇ ¸ğµç ÀÌµ¿ ´Ü°è¸¦ ¿Ï·áÇß´Ù¸é ÀÎµ¦½º¸¦ Àç¼³Á¤ÇÕ´Ï´Ù.
+        // ì´ ë°©í–¥ì˜ ëª¨ë“  ì´ë™ ë‹¨ê³„ë¥¼ ì™„ë£Œí–ˆë‹¤ë©´ ì¸ë±ìŠ¤ë¥¼ ì¬ì„¤ì •í•©ë‹ˆë‹¤.
         if (currentRightMoveIndex >= moveDistancesRight.Length)
         {
-            currentRightMoveIndex = 0; // Ã¹ ¹øÂ° ÀÌµ¿ ´Ü°è·Î ´Ù½Ã µ¹¾Æ°©´Ï´Ù.
-            Debug.Log("¿À¸¥ÂÊ ÀÌµ¿ »çÀÌÅ¬ ¿Ï·á, ÀÎµ¦½º Àç¼³Á¤.");
+            currentRightMoveIndex = 0; // ì²« ë²ˆì§¸ ì´ë™ ë‹¨ê³„ë¡œ ë‹¤ì‹œ ëŒì•„ê°‘ë‹ˆë‹¤.
+            Debug.Log("ì˜¤ë¥¸ìª½ ì´ë™ ì‚¬ì´í´ ì™„ë£Œ, ì¸ë±ìŠ¤ ì¬ì„¤ì •.");
         }
 
         isMovingRight = true;
-        SetTargetPositionForRightMovement(); // ÇöÀç ´Ü°èÀÇ ÃÖÁ¾ ¸ñÇ¥ À§Ä¡ ¼³Á¤
+        SetTargetPositionForRightMovement(); // í˜„ì¬ ë‹¨ê³„ì˜ ìµœì¢… ëª©í‘œ ìœ„ì¹˜ ì„¤ì •
 
-        // ±âÁ¸ ÄÚ·çÆ¾ÀÌ ÀÖ´Ù¸é ÁßÁöÇÏ°í »õ·Î¿î ÄÚ·çÆ¾ ½ÃÀÛ
+        // ê¸°ì¡´ ì½”ë£¨í‹´ì´ ìˆë‹¤ë©´ ì¤‘ì§€í•˜ê³  ìƒˆë¡œìš´ ì½”ë£¨í‹´ ì‹œì‘
         if (currentMovementCoroutine != null)
         {
             StopCoroutine(currentMovementCoroutine);
         }
-        currentMovementCoroutine = StartCoroutine(MoveGantryToTarget(true)); // '¿À¸¥ÂÊ' ÀÌµ¿(Y °¨¼Ò)À» À§ÇØ true Àü´Ş
+        currentMovementCoroutine = StartCoroutine(MoveGantryToTarget(true)); // 'ì˜¤ë¥¸ìª½' ì´ë™(Y ê°ì†Œ)ì„ ìœ„í•´ true ì „ë‹¬
 
-        // RotaionObject¿Í chainIntance Á¦¾î´Â ½ÇÁ¦ '¿À¸¥ÂÊ' ¹æÇâ ·ÎÁ÷¿¡ µû¶ó °ËÅäµÉ ¼ö ÀÖ½À´Ï´Ù.
-        RotaionObject.ActivateZLiftRotationCCW(); // CW È¸ÀüÀÌ '¿À¸¥ÂÊ'°ú ¿¬°áµÈ´Ù°í °¡Á¤
-        chainIntance.ActiveChainCCW(); // ActiveChainCW°¡ '¿À¸¥ÂÊ'°ú ¿¬°áµÈ´Ù°í °¡Á¤
+        // RotaionObjectì™€ chainIntance ì œì–´ëŠ” ì‹¤ì œ 'ì˜¤ë¥¸ìª½' ë°©í–¥ ë¡œì§ì— ë”°ë¼ ê²€í† ë  ìˆ˜ ìˆìŠµë‹ˆë‹¤.
+        RotaionObject.ActivateZLiftRotationCCW(); // CW íšŒì „ì´ 'ì˜¤ë¥¸ìª½'ê³¼ ì—°ê²°ëœë‹¤ê³  ê°€ì •
+        chainIntance.ActiveChainCCW(); // ActiveChainCWê°€ 'ì˜¤ë¥¸ìª½'ê³¼ ì—°ê²°ëœë‹¤ê³  ê°€ì •
 
-        // --- Ãß°¡µÈ ºÎºĞ: ¿òÁ÷ÀÓ ½ÃÀÛ ½Ã X7:1 ½ÅÈ£ Àü¼Û ---
+        // --- ì¶”ê°€ëœ ë¶€ë¶„: ì›€ì§ì„ ì‹œì‘ ì‹œ X7:1 ì‹ í˜¸ ì „ì†¡ ---
         if (actUtlManager != null)
         {
             actUtlManager.SendCommandToPlc("X8:0");
@@ -80,63 +80,63 @@ public class XGantry : MonoBehaviour
     }
 
     /// <summary>
-    /// '¿À¸¥ÂÊ' ÀÌµ¿À» ºñÈ°¼ºÈ­ÇÕ´Ï´Ù. (¼öµ¿ Áß´ÜÀ» À§ÇÑ ÇÔ¼ö)
+    /// 'ì˜¤ë¥¸ìª½' ì´ë™ì„ ë¹„í™œì„±í™”í•©ë‹ˆë‹¤. (ìˆ˜ë™ ì¤‘ë‹¨ì„ ìœ„í•œ í•¨ìˆ˜)
     /// </summary>
     public void DeactivateXGantryMovingRight()
     {
         if (isMovingRight)
         {
             isMovingRight = false;
-            // ÀÌµ¿ ÁßÀÎ ÄÚ·çÆ¾ÀÌ ÀÖ´Ù¸é Áï½Ã ÁßÁö
+            // ì´ë™ ì¤‘ì¸ ì½”ë£¨í‹´ì´ ìˆë‹¤ë©´ ì¦‰ì‹œ ì¤‘ì§€
             if (currentMovementCoroutine != null)
             {
                 StopCoroutine(currentMovementCoroutine);
-                currentMovementCoroutine = null; // ÂüÁ¶ Áö¿ì±â
+                currentMovementCoroutine = null; // ì°¸ì¡° ì§€ìš°ê¸°
             }
-            RotaionObject.DeactivateZLiftRotationCCW(); // DeactivateZLiftRotationCW°¡ '¿À¸¥ÂÊ'°ú ¿¬°áµÈ´Ù°í °¡Á¤
-            chainIntance.DeActiveChainCCW(); // DeActiveChainCW°¡ '¿À¸¥ÂÊ'°ú ¿¬°áµÈ´Ù°í °¡Á¤
+            RotaionObject.DeactivateZLiftRotationCCW(); // DeactivateZLiftRotationCWê°€ 'ì˜¤ë¥¸ìª½'ê³¼ ì—°ê²°ëœë‹¤ê³  ê°€ì •
+            chainIntance.DeActiveChainCCW(); // DeActiveChainCWê°€ 'ì˜¤ë¥¸ìª½'ê³¼ ì—°ê²°ëœë‹¤ê³  ê°€ì •
 
-            // --- Ãß°¡µÈ ºÎºĞ: ¼öµ¿ ºñÈ°¼ºÈ­ ½Ã X7:0 ½ÅÈ£ Àü¼Û ---
+            // --- ì¶”ê°€ëœ ë¶€ë¶„: ìˆ˜ë™ ë¹„í™œì„±í™” ì‹œ X7:0 ì‹ í˜¸ ì „ì†¡ ---
             if (actUtlManager != null)
             {
                 actUtlManager.SendCommandToPlc("X8:1");
             }
-            // --- Ãß°¡µÈ ºÎºĞ ³¡ ---
-            Debug.Log("XGantry ¿À¸¥ÂÊ ÀÌµ¿ ºñÈ°¼ºÈ­. ÀÌµ¿ ÁßÁö.");
+            // --- ì¶”ê°€ëœ ë¶€ë¶„ ë ---
+            Debug.Log("XGantry ì˜¤ë¥¸ìª½ ì´ë™ ë¹„í™œì„±í™”. ì´ë™ ì¤‘ì§€.");
         }
     }
 
     /// <summary>
-    /// '¿ŞÂÊ' (Y ·ÎÄÃ À§Ä¡ Áõ°¡, ¾ç¼ö ¹æÇâ) ÀÌµ¿ ÇÁ·Î¼¼½º¸¦ ½ÃÀÛÇÕ´Ï´Ù.
-    /// moveDistancesLeft ¹è¿­¿¡ Á¤ÀÇµÈ ´ÙÀ½ °Å¸®¸¸Å­ ÀÌµ¿ÇÕ´Ï´Ù.
+    /// 'ì™¼ìª½' (Y ë¡œì»¬ ìœ„ì¹˜ ì¦ê°€, ì–‘ìˆ˜ ë°©í–¥) ì´ë™ í”„ë¡œì„¸ìŠ¤ë¥¼ ì‹œì‘í•©ë‹ˆë‹¤.
+    /// moveDistancesLeft ë°°ì—´ì— ì •ì˜ëœ ë‹¤ìŒ ê±°ë¦¬ë§Œí¼ ì´ë™í•©ë‹ˆë‹¤.
     /// </summary>
     public void ActivateXGantryMovingLeft()
     {
-        // ÀÌ¹Ì ´Ù¸¥ ¹æÇâÀ¸·Î ¿òÁ÷ÀÌ°Å³ª °°Àº ¹æÇâÀ¸·Î ¿òÁ÷ÀÌ°í ÀÖ´Ù¸é »õ·Î¿î ÀÌµ¿À» ½ÃÀÛÇÏÁö ¾ÊÀ½
+        // ì´ë¯¸ ë‹¤ë¥¸ ë°©í–¥ìœ¼ë¡œ ì›€ì§ì´ê±°ë‚˜ ê°™ì€ ë°©í–¥ìœ¼ë¡œ ì›€ì§ì´ê³  ìˆë‹¤ë©´ ìƒˆë¡œìš´ ì´ë™ì„ ì‹œì‘í•˜ì§€ ì•ŠìŒ
         if (isMovingRight || isMovingLeft) return;
 
-        // ÀÌ ¹æÇâÀÇ ¸ğµç ÀÌµ¿ ´Ü°è¸¦ ¿Ï·áÇß´Ù¸é ÀÎµ¦½º¸¦ Àç¼³Á¤ÇÕ´Ï´Ù.
+        // ì´ ë°©í–¥ì˜ ëª¨ë“  ì´ë™ ë‹¨ê³„ë¥¼ ì™„ë£Œí–ˆë‹¤ë©´ ì¸ë±ìŠ¤ë¥¼ ì¬ì„¤ì •í•©ë‹ˆë‹¤.
         if (currentLeftMoveIndex >= moveDistancesLeft.Length)
         {
-            currentLeftMoveIndex = 0; // Ã¹ ¹øÂ° ÀÌµ¿ ´Ü°è·Î ´Ù½Ã µ¹¾Æ°©´Ï´Ù.
-            Debug.Log("¿ŞÂÊ ÀÌµ¿ »çÀÌÅ¬ ¿Ï·á, ÀÎµ¦½º Àç¼³Á¤.");
+            currentLeftMoveIndex = 0; // ì²« ë²ˆì§¸ ì´ë™ ë‹¨ê³„ë¡œ ë‹¤ì‹œ ëŒì•„ê°‘ë‹ˆë‹¤.
+            Debug.Log("ì™¼ìª½ ì´ë™ ì‚¬ì´í´ ì™„ë£Œ, ì¸ë±ìŠ¤ ì¬ì„¤ì •.");
         }
 
         isMovingLeft = true;
-        SetTargetPositionForLeftMovement(); // ÇöÀç ´Ü°èÀÇ ÃÖÁ¾ ¸ñÇ¥ À§Ä¡ ¼³Á¤
+        SetTargetPositionForLeftMovement(); // í˜„ì¬ ë‹¨ê³„ì˜ ìµœì¢… ëª©í‘œ ìœ„ì¹˜ ì„¤ì •
 
-        // ±âÁ¸ ÄÚ·çÆ¾ÀÌ ÀÖ´Ù¸é ÁßÁöÇÏ°í »õ·Î¿î ÄÚ·çÆ¾ ½ÃÀÛ
+        // ê¸°ì¡´ ì½”ë£¨í‹´ì´ ìˆë‹¤ë©´ ì¤‘ì§€í•˜ê³  ìƒˆë¡œìš´ ì½”ë£¨í‹´ ì‹œì‘
         if (currentMovementCoroutine != null)
         {
             StopCoroutine(currentMovementCoroutine);
         }
-        currentMovementCoroutine = StartCoroutine(MoveGantryToTarget(false)); // '¿ŞÂÊ' ÀÌµ¿(Y Áõ°¡)À» À§ÇØ false Àü´Ş
+        currentMovementCoroutine = StartCoroutine(MoveGantryToTarget(false)); // 'ì™¼ìª½' ì´ë™(Y ì¦ê°€)ì„ ìœ„í•´ false ì „ë‹¬
 
-        // RotaionObject¿Í chainIntance Á¦¾î´Â ½ÇÁ¦ '¿ŞÂÊ' ¹æÇâ ·ÎÁ÷¿¡ µû¶ó °ËÅäµÉ ¼ö ÀÖ½À´Ï´Ù.
-        RotaionObject.ActivateZLiftRotationCW(); // CCW È¸ÀüÀÌ '¿ŞÂÊ'°ú ¿¬°áµÈ´Ù°í °¡Á¤
-        chainIntance.ActiveChainCW(); // ActiveChainCCW°¡ '¿ŞÂÊ'°ú ¿¬°áµÈ´Ù°í °¡Á¤
+        // RotaionObjectì™€ chainIntance ì œì–´ëŠ” ì‹¤ì œ 'ì™¼ìª½' ë°©í–¥ ë¡œì§ì— ë”°ë¼ ê²€í† ë  ìˆ˜ ìˆìŠµë‹ˆë‹¤.
+        RotaionObject.ActivateZLiftRotationCW(); // CCW íšŒì „ì´ 'ì™¼ìª½'ê³¼ ì—°ê²°ëœë‹¤ê³  ê°€ì •
+        chainIntance.ActiveChainCW(); // ActiveChainCCWê°€ 'ì™¼ìª½'ê³¼ ì—°ê²°ëœë‹¤ê³  ê°€ì •
 
-        // --- Ãß°¡µÈ ºÎºĞ: ¿òÁ÷ÀÓ ½ÃÀÛ ½Ã X7:1 ½ÅÈ£ Àü¼Û ---
+        // --- ì¶”ê°€ëœ ë¶€ë¶„: ì›€ì§ì„ ì‹œì‘ ì‹œ X7:1 ì‹ í˜¸ ì „ì†¡ ---
         if (actUtlManager != null)
         {
             actUtlManager.SendCommandToPlc("X9:0");
@@ -144,64 +144,64 @@ public class XGantry : MonoBehaviour
     }
 
     /// <summary>
-    /// '¿ŞÂÊ' ÀÌµ¿À» ºñÈ°¼ºÈ­ÇÕ´Ï´Ù. (¼öµ¿ Áß´ÜÀ» À§ÇÑ ÇÔ¼ö)
+    /// 'ì™¼ìª½' ì´ë™ì„ ë¹„í™œì„±í™”í•©ë‹ˆë‹¤. (ìˆ˜ë™ ì¤‘ë‹¨ì„ ìœ„í•œ í•¨ìˆ˜)
     /// </summary>
     public void DeactivateXGantryMovingLeft()
     {
         if (isMovingLeft)
         {
             isMovingLeft = false;
-            // ÀÌµ¿ ÁßÀÎ ÄÚ·çÆ¾ÀÌ ÀÖ´Ù¸é Áï½Ã ÁßÁö
+            // ì´ë™ ì¤‘ì¸ ì½”ë£¨í‹´ì´ ìˆë‹¤ë©´ ì¦‰ì‹œ ì¤‘ì§€
             if (currentMovementCoroutine != null)
             {
                 StopCoroutine(currentMovementCoroutine);
-                currentMovementCoroutine = null; // ÂüÁ¶ Áö¿ì±â
+                currentMovementCoroutine = null; // ì°¸ì¡° ì§€ìš°ê¸°
             }
-            RotaionObject.DeactivateZLiftRotationCW(); // DeactivateZLiftRotationCCW°¡ '¿ŞÂÊ'°ú ¿¬°áµÈ´Ù°í °¡Á¤
-            chainIntance.DeActiveChainCW(); // DeActiveChainCCW°¡ '¿ŞÂÊ'°ú ¿¬°áµÈ´Ù°í °¡Á¤
+            RotaionObject.DeactivateZLiftRotationCW(); // DeactivateZLiftRotationCCWê°€ 'ì™¼ìª½'ê³¼ ì—°ê²°ëœë‹¤ê³  ê°€ì •
+            chainIntance.DeActiveChainCW(); // DeActiveChainCCWê°€ 'ì™¼ìª½'ê³¼ ì—°ê²°ëœë‹¤ê³  ê°€ì •
 
-            // --- Ãß°¡µÈ ºÎºĞ: ¼öµ¿ ºñÈ°¼ºÈ­ ½Ã X7:0 ½ÅÈ£ Àü¼Û ---
+            // --- ì¶”ê°€ëœ ë¶€ë¶„: ìˆ˜ë™ ë¹„í™œì„±í™” ì‹œ X7:0 ì‹ í˜¸ ì „ì†¡ ---
             if (actUtlManager != null)
             {
                 actUtlManager.SendCommandToPlc("X9:1");
             }
-            // --- Ãß°¡µÈ ºÎºĞ ³¡ ---
-            Debug.Log("XGantry ¿ŞÂÊ ÀÌµ¿ ºñÈ°¼ºÈ­. ÀÌµ¿ ÁßÁö.");
+            // --- ì¶”ê°€ëœ ë¶€ë¶„ ë ---
+            Debug.Log("XGantry ì™¼ìª½ ì´ë™ ë¹„í™œì„±í™”. ì´ë™ ì¤‘ì§€.");
         }
     }
 
     /// <summary>
-    /// °µÆ®¸®¸¦ ÇöÀç ¸ñÇ¥ À§Ä¡(·ÎÄÃ ÁÂÇ¥)·Î ÀÌµ¿½ÃÅ°´Â ÄÚ·çÆ¾ÀÔ´Ï´Ù.
+    /// ê° íŠ¸ë¦¬ë¥¼ í˜„ì¬ ëª©í‘œ ìœ„ì¹˜(ë¡œì»¬ ì¢Œí‘œ)ë¡œ ì´ë™ì‹œí‚¤ëŠ” ì½”ë£¨í‹´ì…ë‹ˆë‹¤.
     /// </summary>
-    /// <param name="isRightDirection">'¿À¸¥ÂÊ' ÀÌµ¿ (Y °¨¼Ò)ÀÌ¸é true, '¿ŞÂÊ' ÀÌµ¿ (Y Áõ°¡)ÀÌ¸é false.</param>
+    /// <param name="isRightDirection">'ì˜¤ë¥¸ìª½' ì´ë™ (Y ê°ì†Œ)ì´ë©´ true, 'ì™¼ìª½' ì´ë™ (Y ì¦ê°€)ì´ë©´ false.</param>
     private IEnumerator MoveGantryToTarget(bool isRightDirection)
     {
-        // XGantryMoving ¿ÀºêÁ§Æ®°¡ Á¸ÀçÇÏ´ÂÁö È®ÀÎ
+        // XGantryMoving ì˜¤ë¸Œì íŠ¸ê°€ ì¡´ì¬í•˜ëŠ”ì§€ í™•ì¸
         if (XGantryMoving == null)
         {
-            Debug.LogError("XGantryMovingÀÌ nullÀÔ´Ï´Ù. ÀÌµ¿ÇÒ ¼ö ¾ø½À´Ï´Ù.");
-            yield break; // ÄÚ·çÆ¾ Á¾·á
+            Debug.LogError("XGantryMovingì´ nullì…ë‹ˆë‹¤. ì´ë™í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤.");
+            yield break; // ì½”ë£¨í‹´ ì¢…ë£Œ
         }
 
-        // ¸ñÇ¥ ·ÎÄÃ À§Ä¡¿¡ µµ´ŞÇÏ°Å³ª ÀÌµ¿ÀÌ ºñÈ°¼ºÈ­µÉ ¶§±îÁö °è¼Ó ÀÌµ¿
+        // ëª©í‘œ ë¡œì»¬ ìœ„ì¹˜ì— ë„ë‹¬í•˜ê±°ë‚˜ ì´ë™ì´ ë¹„í™œì„±í™”ë  ë•Œê¹Œì§€ ê³„ì† ì´ë™
         while ((isRightDirection && isMovingRight) || (!isRightDirection && isMovingLeft))
         {
-            // ¸ñÇ¥ ·ÎÄÃ À§Ä¡·Î ÀÌµ¿
+            // ëª©í‘œ ë¡œì»¬ ìœ„ì¹˜ë¡œ ì´ë™
             XGantryMoving.transform.localPosition = Vector3.MoveTowards(XGantryMoving.transform.localPosition, currentLocalTargetPosition, moveSpeed * Time.deltaTime);
 
-            // ¸ñÇ¥¿¡ µµ´ŞÇß´ÂÁö È®ÀÎ (·ÎÄÃ À§Ä¡ÀÇ °Å¸®¸¦ »ç¿ë)
+            // ëª©í‘œì— ë„ë‹¬í–ˆëŠ”ì§€ í™•ì¸ (ë¡œì»¬ ìœ„ì¹˜ì˜ ê±°ë¦¬ë¥¼ ì‚¬ìš©)
             if (Vector3.Distance(XGantryMoving.transform.localPosition, currentLocalTargetPosition) < 0.01f)
             {
-                // ºÎµ¿ ¼Ò¼öÁ¡ ¿ÀÂ÷¸¦ ÇÇÇÏ±â À§ÇØ Á¤È®ÇÑ ¸ñÇ¥ ·ÎÄÃ À§Ä¡·Î ½º³À
+                // ë¶€ë™ ì†Œìˆ˜ì  ì˜¤ì°¨ë¥¼ í”¼í•˜ê¸° ìœ„í•´ ì •í™•í•œ ëª©í‘œ ë¡œì»¬ ìœ„ì¹˜ë¡œ ìŠ¤ëƒ…
                 XGantryMoving.transform.localPosition = currentLocalTargetPosition;
-                Debug.Log($"XGantry°¡ ·ÎÄÃ Y: {currentLocalTargetPosition.y}¿¡ µµÂøÇß½À´Ï´Ù.");
-                break; // ¸ñÇ¥¿¡ µµ´ŞÇßÀ¸¹Ç·Î while ·çÇÁ Á¾·á
+                Debug.Log($"XGantryê°€ ë¡œì»¬ Y: {currentLocalTargetPosition.y}ì— ë„ì°©í–ˆìŠµë‹ˆë‹¤.");
+                break; // ëª©í‘œì— ë„ë‹¬í–ˆìœ¼ë¯€ë¡œ while ë£¨í”„ ì¢…ë£Œ
             }
-            yield return null; // ´ÙÀ½ ÇÁ·¹ÀÓ±îÁö ´ë±â
+            yield return null; // ë‹¤ìŒ í”„ë ˆì„ê¹Œì§€ ëŒ€ê¸°
         }
 
-        // ÀÌµ¿ÀÌ ¿Ï·áµÇ¾ú°Å³ª ¼öµ¿À¸·Î ºñÈ°¼ºÈ­µÇ¾ú½À´Ï´Ù.
-        // ÀÌµ¿ÀÌ ¼º°øÀûÀ¸·Î ¿Ï·áµÇ¾ú´Ù¸é ´ÙÀ½ ´Ü°è¸¦ À§ÇØ ÀÎµ¦½º¸¦ Áõ°¡½ÃÅµ´Ï´Ù.
+        // ì´ë™ì´ ì™„ë£Œë˜ì—ˆê±°ë‚˜ ìˆ˜ë™ìœ¼ë¡œ ë¹„í™œì„±í™”ë˜ì—ˆìŠµë‹ˆë‹¤.
+        // ì´ë™ì´ ì„±ê³µì ìœ¼ë¡œ ì™„ë£Œë˜ì—ˆë‹¤ë©´ ë‹¤ìŒ ë‹¨ê³„ë¥¼ ìœ„í•´ ì¸ë±ìŠ¤ë¥¼ ì¦ê°€ì‹œí‚µë‹ˆë‹¤.
         if (Vector3.Distance(XGantryMoving.transform.localPosition, currentLocalTargetPosition) < 0.01f)
         {
             if (isRightDirection)
@@ -214,7 +214,7 @@ public class XGantry : MonoBehaviour
             }
         }
 
-        // ÇÃ·¡±×¸¦ ºñÈ°¼ºÈ­ÇÏ°í °ü·Ã ¾×¼ÇÀ» ÁßÁöÇÕ´Ï´Ù.
+        // í”Œë˜ê·¸ë¥¼ ë¹„í™œì„±í™”í•˜ê³  ê´€ë ¨ ì•¡ì…˜ì„ ì¤‘ì§€í•©ë‹ˆë‹¤.
         if (isRightDirection)
         {
             isMovingRight = false;
@@ -223,7 +223,7 @@ public class XGantry : MonoBehaviour
             if (actUtlManager != null)
             {
                 actUtlManager.SendCommandToPlc("X8:1");
-                Debug.Log("XGantry: PLC¿¡ X8:1 (ÀÌµ¿ ¿Ï·á) ¸í·É Àü¼Û.");
+                Debug.Log("XGantry: PLCì— X8:1 (ì´ë™ ì™„ë£Œ) ëª…ë ¹ ì „ì†¡.");
             }
         }
         else
@@ -233,32 +233,32 @@ public class XGantry : MonoBehaviour
             chainIntance.DeActiveChainCW();
             if (actUtlManager != null)
             {
-                actUtlManager.SendCommandToPlc("X9:1"); // °µÆ®¸® µ¿ÀÛ ¿Ï·á¸¦ PLC¿¡ ¾Ë¸² (OFF)
-                Debug.Log("XGantry: PLC¿¡ X9:1 (ÀÌµ¿ ¿Ï·á) ¸í·É Àü¼Û.");
+                actUtlManager.SendCommandToPlc("X9:1"); // ê° íŠ¸ë¦¬ ë™ì‘ ì™„ë£Œë¥¼ PLCì— ì•Œë¦¼ (OFF)
+                Debug.Log("XGantry: PLCì— X9:1 (ì´ë™ ì™„ë£Œ) ëª…ë ¹ ì „ì†¡.");
             }
         }
-        currentMovementCoroutine = null; // ÄÚ·çÆ¾ ÂüÁ¶ Áö¿ì±â
+        currentMovementCoroutine = null; // ì½”ë£¨í‹´ ì°¸ì¡° ì§€ìš°ê¸°
     }
 
     /// <summary>
-    /// ¹è¿­À» ±â¹İÀ¸·Î '¿À¸¥ÂÊ' ÀÌµ¿À» À§ÇÑ ÃÖÁ¾ ¸ñÇ¥ ·ÎÄÃ À§Ä¡¸¦ ¼³Á¤ÇÕ´Ï´Ù.
-    /// (ÇöÀç ·ÎÄÃ Y¿¡ moveDistancesRight[index] °ªÀ» ´õÇÑ À§Ä¡)
+    /// ë°°ì—´ì„ ê¸°ë°˜ìœ¼ë¡œ 'ì˜¤ë¥¸ìª½' ì´ë™ì„ ìœ„í•œ ìµœì¢… ëª©í‘œ ë¡œì»¬ ìœ„ì¹˜ë¥¼ ì„¤ì •í•©ë‹ˆë‹¤.
+    /// (í˜„ì¬ ë¡œì»¬ Yì— moveDistancesRight[index] ê°’ì„ ë”í•œ ìœ„ì¹˜)
     /// </summary>
     private void SetTargetPositionForRightMovement()
     {
-        float moveAmountY = moveDistancesRight[currentRightMoveIndex]; // ÀÌµ¿ÇÒ °Å¸®(µ¨Å¸ °ª)
-        // ÇöÀç ·ÎÄÃ Y¿¡ moveAmountY¸¦ ´õÇØ¼­ »õ·Î¿î ¸ñÇ¥ ·ÎÄÃ Y¸¦ °è»êÇÕ´Ï´Ù.
+        float moveAmountY = moveDistancesRight[currentRightMoveIndex]; // ì´ë™í•  ê±°ë¦¬(ë¸íƒ€ ê°’)
+        // í˜„ì¬ ë¡œì»¬ Yì— moveAmountYë¥¼ ë”í•´ì„œ ìƒˆë¡œìš´ ëª©í‘œ ë¡œì»¬ Yë¥¼ ê³„ì‚°í•©ë‹ˆë‹¤.
         currentLocalTargetPosition = new Vector3(XGantryMoving.transform.localPosition.x, XGantryMoving.transform.localPosition.y + moveAmountY, XGantryMoving.transform.localPosition.z);
     }
 
     /// <summary>
-    /// ¹è¿­À» ±â¹İÀ¸·Î '¿ŞÂÊ' ÀÌµ¿À» À§ÇÑ ÃÖÁ¾ ¸ñÇ¥ ·ÎÄÃ À§Ä¡¸¦ ¼³Á¤ÇÕ´Ï´Ù.
-    /// (ÇöÀç ·ÎÄÃ Y¿¡ moveDistancesLeft[index] °ªÀ» ´õÇÑ À§Ä¡)
+    /// ë°°ì—´ì„ ê¸°ë°˜ìœ¼ë¡œ 'ì™¼ìª½' ì´ë™ì„ ìœ„í•œ ìµœì¢… ëª©í‘œ ë¡œì»¬ ìœ„ì¹˜ë¥¼ ì„¤ì •í•©ë‹ˆë‹¤.
+    /// (í˜„ì¬ ë¡œì»¬ Yì— moveDistancesLeft[index] ê°’ì„ ë”í•œ ìœ„ì¹˜)
     /// </summary>
     private void SetTargetPositionForLeftMovement()
     {
-        float moveAmountY = moveDistancesLeft[currentLeftMoveIndex]; // ÀÌµ¿ÇÒ °Å¸®(µ¨Å¸ °ª)
-        // ÇöÀç ·ÎÄÃ Y¿¡ moveAmountY¸¦ ´õÇØ¼­ »õ·Î¿î ¸ñÇ¥ ·ÎÄÃ Y¸¦ °è»êÇÕ´Ï´Ù.
+        float moveAmountY = moveDistancesLeft[currentLeftMoveIndex]; // ì´ë™í•  ê±°ë¦¬(ë¸íƒ€ ê°’)
+        // í˜„ì¬ ë¡œì»¬ Yì— moveAmountYë¥¼ ë”í•´ì„œ ìƒˆë¡œìš´ ëª©í‘œ ë¡œì»¬ Yë¥¼ ê³„ì‚°í•©ë‹ˆë‹¤.
         currentLocalTargetPosition = new Vector3(XGantryMoving.transform.localPosition.x, XGantryMoving.transform.localPosition.y + moveAmountY, XGantryMoving.transform.localPosition.z);
     }
 }

@@ -1,14 +1,14 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 public class ForkMove1 : MonoBehaviour
 {
-    // ActUtlManager ÀÎ½ºÅÏ½º ÂüÁ¶ Ãß°¡
+    // ActUtlManager ì¸ìŠ¤í„´ìŠ¤ ì°¸ì¡° ì¶”ê°€
     public ActUtlManager actUtlManager;
 
     private float MoveSpeed = 0.2f;
     private float MoveAmountY = 0.272f + 0.4691286f;
 
-    // °¢ ÆÄÀÌÇÁ È¦´õÀÇ ½ÃÀÛ À§Ä¡¿Í ¸ñÇ¥ À§Ä¡ º¯¼öµé
+    // ê° íŒŒì´í”„ í™€ë”ì˜ ì‹œì‘ ìœ„ì¹˜ì™€ ëª©í‘œ ìœ„ì¹˜ ë³€ìˆ˜ë“¤
     private Vector3 StartPosition;   // PipeHolder1
     private Vector3 TargetPosition;  // PipeHolder1
 
@@ -17,7 +17,7 @@ public class ForkMove1 : MonoBehaviour
 
     void Start()
     {
-        // StartPositionÀº ÇöÀç À§Ä¡¿¡¼­ ÃÊ±âÈ­µÇ¹Ç·Î Start¿¡¼­´Â Æ¯º°È÷ ÇÒ °ÍÀÌ ¾ø½À´Ï´Ù.
+        // StartPositionì€ í˜„ì¬ ìœ„ì¹˜ì—ì„œ ì´ˆê¸°í™”ë˜ë¯€ë¡œ Startì—ì„œëŠ” íŠ¹ë³„íˆ í•  ê²ƒì´ ì—†ìŠµë‹ˆë‹¤.
     }
 
     // Update is called once per frame
@@ -35,7 +35,7 @@ public class ForkMove1 : MonoBehaviour
 
         if (isForkMoveLeft && !isForkMoveRigt)
         {
-            // °¢ PipeHolderÀÇ À§Ä¡¸¦ º¸°£
+            // ê° PipeHolderì˜ ìœ„ì¹˜ë¥¼ ë³´ê°„
             transform.localPosition = Vector3.MoveTowards(transform.localPosition, TargetPosition, MoveSpeed * Time.deltaTime);
             if (Vector3.Distance(transform.localPosition, TargetPosition) < 0.001f)
             {
@@ -47,38 +47,38 @@ public class ForkMove1 : MonoBehaviour
 
     public void ActivateRight()
     {
-        if (isForkMoveRigt || isForkMoveLeft) return; // ÀÌ¹Ì ¿òÁ÷ÀÌ°í ÀÖ´Ù¸é ¹«½Ã
+        if (isForkMoveRigt || isForkMoveLeft) return; // ì´ë¯¸ ì›€ì§ì´ê³  ìˆë‹¤ë©´ ë¬´ì‹œ
 
         isForkMoveRigt = true;
-        isForkMoveLeft = false; // ´Ù¸¥ ¹æÇâ ÇÃ·¡±×´Â Ç×»ó false·Î À¯Áö
+        isForkMoveLeft = false; // ë‹¤ë¥¸ ë°©í–¥ í”Œë˜ê·¸ëŠ” í•­ìƒ falseë¡œ ìœ ì§€
 
         StartPosition = transform.localPosition;
-        TargetPosition = StartPosition + new Vector3(0, MoveAmountY, 0); // YÃà ¾ç¼ö ¹æÇâ ÀÌµ¿ (Right)
+        TargetPosition = StartPosition + new Vector3(0, MoveAmountY, 0); // Yì¶• ì–‘ìˆ˜ ë°©í–¥ ì´ë™ (Right)
 
-        // --- Ãß°¡µÈ ºÎºĞ: ¿À¸¥ÂÊ ÀÌµ¿ ½ÃÀÛ ½Ã X10:1 ½ÅÈ£ Àü¼Û ---
+        // --- ì¶”ê°€ëœ ë¶€ë¶„: ì˜¤ë¥¸ìª½ ì´ë™ ì‹œì‘ ì‹œ X10:1 ì‹ í˜¸ ì „ì†¡ ---
         if (actUtlManager != null)
         {
-            actUtlManager.SendCommandToPlc("X14:0"); // Æ÷Å© ¿À¸¥ÂÊ µ¿ÀÛ ½ÃÀÛÀ» PLC¿¡ ¾Ë¸² (ON)
-            Debug.Log("ForkMove1: PLC¿¡ X10:1 (¿À¸¥ÂÊ ÀÌµ¿ ½ÃÀÛ) ¸í·É Àü¼Û.");
+            actUtlManager.SendCommandToPlc("X14:0"); // í¬í¬ ì˜¤ë¥¸ìª½ ë™ì‘ ì‹œì‘ì„ PLCì— ì•Œë¦¼ (ON)
+            Debug.Log("ForkMove1: PLCì— X10:1 (ì˜¤ë¥¸ìª½ ì´ë™ ì‹œì‘) ëª…ë ¹ ì „ì†¡.");
         }
-        // --- Ãß°¡µÈ ºÎºĞ ³¡ ---
+        // --- ì¶”ê°€ëœ ë¶€ë¶„ ë ---
 
         Debug.Log($"Fork Right move activated. Local Y: {transform.localPosition.y} to {TargetPosition.y}");
     }
 
     public void DeactivateRight()
     {
-        if (isForkMoveRigt) // ¿À¸¥ÂÊ ÀÌµ¿ ÁßÀÏ ¶§¸¸ ºñÈ°¼ºÈ­
+        if (isForkMoveRigt) // ì˜¤ë¥¸ìª½ ì´ë™ ì¤‘ì¼ ë•Œë§Œ ë¹„í™œì„±í™”
         {
             isForkMoveRigt = false;
 
-            // --- Ãß°¡µÈ ºÎºĞ: ¿À¸¥ÂÊ ÀÌµ¿ ºñÈ°¼ºÈ­ ½Ã X10:0 ½ÅÈ£ Àü¼Û ---
+            // --- ì¶”ê°€ëœ ë¶€ë¶„: ì˜¤ë¥¸ìª½ ì´ë™ ë¹„í™œì„±í™” ì‹œ X10:0 ì‹ í˜¸ ì „ì†¡ ---
             if (actUtlManager != null)
             {
-                actUtlManager.SendCommandToPlc("X14:1"); // Æ÷Å© ¿À¸¥ÂÊ µ¿ÀÛ Á¤Áö¸¦ PLC¿¡ ¾Ë¸² (OFF)
-                Debug.Log("ForkMove1: PLC¿¡ X10:0 (¿À¸¥ÂÊ ÀÌµ¿ ºñÈ°¼ºÈ­) ¸í·É Àü¼Û.");
+                actUtlManager.SendCommandToPlc("X14:1"); // í¬í¬ ì˜¤ë¥¸ìª½ ë™ì‘ ì •ì§€ë¥¼ PLCì— ì•Œë¦¼ (OFF)
+                Debug.Log("ForkMove1: PLCì— X10:0 (ì˜¤ë¥¸ìª½ ì´ë™ ë¹„í™œì„±í™”) ëª…ë ¹ ì „ì†¡.");
             }
-            // --- Ãß°¡µÈ ºÎºĞ ³¡ ---
+            // --- ì¶”ê°€ëœ ë¶€ë¶„ ë ---
 
             Debug.Log("Fork Right move deactivated.");
         }
@@ -86,38 +86,38 @@ public class ForkMove1 : MonoBehaviour
 
     public void ActivateLeft()
     {
-        if (isForkMoveRigt || isForkMoveLeft) return; // ÀÌ¹Ì ¿òÁ÷ÀÌ°í ÀÖ´Ù¸é ¹«½Ã
+        if (isForkMoveRigt || isForkMoveLeft) return; // ì´ë¯¸ ì›€ì§ì´ê³  ìˆë‹¤ë©´ ë¬´ì‹œ
 
         isForkMoveLeft = true;
-        isForkMoveRigt = false; // ´Ù¸¥ ¹æÇâ ÇÃ·¡±×´Â Ç×»ó false·Î À¯Áö
+        isForkMoveRigt = false; // ë‹¤ë¥¸ ë°©í–¥ í”Œë˜ê·¸ëŠ” í•­ìƒ falseë¡œ ìœ ì§€
 
         StartPosition = transform.localPosition;
-        TargetPosition = StartPosition + new Vector3(0, -MoveAmountY, 0); // YÃà À½¼ö ¹æÇâ ÀÌµ¿ (Left)
+        TargetPosition = StartPosition + new Vector3(0, -MoveAmountY, 0); // Yì¶• ìŒìˆ˜ ë°©í–¥ ì´ë™ (Left)
 
-        // --- Ãß°¡µÈ ºÎºĞ: ¿ŞÂÊ ÀÌµ¿ ½ÃÀÛ ½Ã X11:1 ½ÅÈ£ Àü¼Û ---
+        // --- ì¶”ê°€ëœ ë¶€ë¶„: ì™¼ìª½ ì´ë™ ì‹œì‘ ì‹œ X11:1 ì‹ í˜¸ ì „ì†¡ ---
         if (actUtlManager != null)
         {
-            actUtlManager.SendCommandToPlc("X15:0"); // Æ÷Å© ¿ŞÂÊ µ¿ÀÛ ½ÃÀÛÀ» PLC¿¡ ¾Ë¸² (ON)
-            Debug.Log("ForkMove1: PLC¿¡ X11:1 (¿ŞÂÊ ÀÌµ¿ ½ÃÀÛ) ¸í·É Àü¼Û.");
+            actUtlManager.SendCommandToPlc("X15:0"); // í¬í¬ ì™¼ìª½ ë™ì‘ ì‹œì‘ì„ PLCì— ì•Œë¦¼ (ON)
+            Debug.Log("ForkMove1: PLCì— X11:1 (ì™¼ìª½ ì´ë™ ì‹œì‘) ëª…ë ¹ ì „ì†¡.");
         }
-        // --- Ãß°¡µÈ ºÎºĞ ³¡ ---
+        // --- ì¶”ê°€ëœ ë¶€ë¶„ ë ---
 
         Debug.Log($"Fork Left move activated. Local Y: {transform.localPosition.y} to {TargetPosition.y}");
     }
 
     public void DeactivateLeft()
     {
-        if (isForkMoveLeft) // ¿ŞÂÊ ÀÌµ¿ ÁßÀÏ ¶§¸¸ ºñÈ°¼ºÈ­
+        if (isForkMoveLeft) // ì™¼ìª½ ì´ë™ ì¤‘ì¼ ë•Œë§Œ ë¹„í™œì„±í™”
         {
             isForkMoveLeft = false;
 
-            // --- Ãß°¡µÈ ºÎºĞ: ¿ŞÂÊ ÀÌµ¿ ºñÈ°¼ºÈ­ ½Ã X11:0 ½ÅÈ£ Àü¼Û ---
+            // --- ì¶”ê°€ëœ ë¶€ë¶„: ì™¼ìª½ ì´ë™ ë¹„í™œì„±í™” ì‹œ X11:0 ì‹ í˜¸ ì „ì†¡ ---
             if (actUtlManager != null)
             {
-                actUtlManager.SendCommandToPlc("X15:1"); // Æ÷Å© ¿ŞÂÊ µ¿ÀÛ Á¤Áö¸¦ PLC¿¡ ¾Ë¸² (OFF)
-                Debug.Log("ForkMove1: PLC¿¡ X11:0 (¿ŞÂÊ ÀÌµ¿ ºñÈ°¼ºÈ­) ¸í·É Àü¼Û.");
+                actUtlManager.SendCommandToPlc("X15:1"); // í¬í¬ ì™¼ìª½ ë™ì‘ ì •ì§€ë¥¼ PLCì— ì•Œë¦¼ (OFF)
+                Debug.Log("ForkMove1: PLCì— X11:0 (ì™¼ìª½ ì´ë™ ë¹„í™œì„±í™”) ëª…ë ¹ ì „ì†¡.");
             }
-            // --- Ãß°¡µÈ ºÎºĞ ³¡ ---
+            // --- ì¶”ê°€ëœ ë¶€ë¶„ ë ---
 
             Debug.Log("Fork Left move deactivated.");
         }

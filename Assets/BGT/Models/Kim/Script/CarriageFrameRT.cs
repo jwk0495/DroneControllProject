@@ -1,23 +1,23 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 public class CarriageFrameRT : MonoBehaviour
 {
-    // À¯´ÏÆ¼ ¿¡µğÅÍ¿¡¼­ Á¶ÀıÇÒ È¸Àü ¼Óµµ (ÃÊ´ç °¢µµ)
-    public float rotationSpeed = 90f; // 90f·Î ¼³Á¤ÇÏ¸é 2ÃÊ ¾È¿¡ 180µµ È¸Àü
+    // ìœ ë‹ˆí‹° ì—ë””í„°ì—ì„œ ì¡°ì ˆí•  íšŒì „ ì†ë„ (ì´ˆë‹¹ ê°ë„)
+    public float rotationSpeed = 90f; // 90fë¡œ ì„¤ì •í•˜ë©´ 2ì´ˆ ì•ˆì— 180ë„ íšŒì „
 
-    // ActUtlManager ÀÎ½ºÅÏ½º ÂüÁ¶ Ãß°¡
+    // ActUtlManager ì¸ìŠ¤í„´ìŠ¤ ì°¸ì¡° ì¶”ê°€
     public ActUtlManager actUtlManager;
 
-    // È¸Àü ¹æÇâ ÇÃ·¡±×
+    // íšŒì „ ë°©í–¥ í”Œë˜ê·¸
     private bool isZLiftRotationCW = false;
     private bool isZLiftRotationCCW = false;
 
-    // È¸Àü ½ÃÀÛ ½ÃÀÇ ÃÊ±â È¸Àü°ª
+    // íšŒì „ ì‹œì‘ ì‹œì˜ ì´ˆê¸° íšŒì „ê°’
     private Quaternion startRotation;
-    // µµ´ŞÇØ¾ß ÇÒ ÃÖÁ¾ ¸ñÇ¥ È¸Àü°ª
+    // ë„ë‹¬í•´ì•¼ í•  ìµœì¢… ëª©í‘œ íšŒì „ê°’
     private Quaternion targetRotation;
 
-    // ÇöÀç È¸ÀüÀÌ ÁøÇà ÁßÀÎÁö ³ªÅ¸³»´Â ÇÃ·¡±×
+    // í˜„ì¬ íšŒì „ì´ ì§„í–‰ ì¤‘ì¸ì§€ ë‚˜íƒ€ë‚´ëŠ” í”Œë˜ê·¸
     private bool isRotating = false;
 
     void Start()
@@ -27,42 +27,42 @@ public class CarriageFrameRT : MonoBehaviour
 
     void Update()
     {
-        // È¸ÀüÀÌ ÁøÇà ÁßÀÏ ¶§¸¸ È¸Àü ·ÎÁ÷À» ½ÇÇà
+        // íšŒì „ì´ ì§„í–‰ ì¤‘ì¼ ë•Œë§Œ íšŒì „ ë¡œì§ì„ ì‹¤í–‰
         if (isRotating)
         {
-            // ÇöÀç È¸Àü°ª¿¡¼­ ¸ñÇ¥ È¸Àü°ªÀ¸·Î 'rotationSpeed' ¸¸Å­ º¸°£ÇÏ¿© ÀÌµ¿
-            // Time.deltaTimeÀ» °öÇØ ÇÁ·¹ÀÓ ¼Óµµ¿¡ µ¶¸³ÀûÀÎ È¸ÀüÀ» º¸Àå
+            // í˜„ì¬ íšŒì „ê°’ì—ì„œ ëª©í‘œ íšŒì „ê°’ìœ¼ë¡œ 'rotationSpeed' ë§Œí¼ ë³´ê°„í•˜ì—¬ ì´ë™
+            // Time.deltaTimeì„ ê³±í•´ í”„ë ˆì„ ì†ë„ì— ë…ë¦½ì ì¸ íšŒì „ì„ ë³´ì¥
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
 
-            // È¸ÀüÀÌ ¸ñÇ¥¿¡ °ÅÀÇ µµ´ŞÇß´ÂÁö È®ÀÎ
-            // Quaternion.AngleÀº µÎ ÄõÅÍ´Ï¾ğ »çÀÌÀÇ °¢µµ Â÷ÀÌ¸¦ ¹İÈ¯
-            if (Quaternion.Angle(transform.rotation, targetRotation) < 0.1f) // 0.1µµ ÀÌ³» ¿ÀÂ÷ Çã¿ë
+            // íšŒì „ì´ ëª©í‘œì— ê±°ì˜ ë„ë‹¬í–ˆëŠ”ì§€ í™•ì¸
+            // Quaternion.Angleì€ ë‘ ì¿¼í„°ë‹ˆì–¸ ì‚¬ì´ì˜ ê°ë„ ì°¨ì´ë¥¼ ë°˜í™˜
+            if (Quaternion.Angle(transform.rotation, targetRotation) < 0.1f) // 0.1ë„ ì´ë‚´ ì˜¤ì°¨ í—ˆìš©
             {
-                transform.rotation = targetRotation; // Á¤È®ÇÑ ¸ñÇ¥ È¸Àü°ªÀ¸·Î ¼³Á¤ÇÏ¿© ¿ÀÂ÷ º¸Á¤
-                isRotating = false; // È¸Àü ¿Ï·á ÇÃ·¡±× false
+                transform.rotation = targetRotation; // ì •í™•í•œ ëª©í‘œ íšŒì „ê°’ìœ¼ë¡œ ì„¤ì •í•˜ì—¬ ì˜¤ì°¨ ë³´ì •
+                isRotating = false; // íšŒì „ ì™„ë£Œ í”Œë˜ê·¸ false
 
-                // ÇöÀç È°¼ºÈ­µÈ È¸Àü ¹æÇâ¿¡ µû¶ó PLC ½ÅÈ£ Àü¼Û
-                if (isZLiftRotationCW) // CW È¸ÀüÀÌ ¿Ï·áµÊ
+                // í˜„ì¬ í™œì„±í™”ëœ íšŒì „ ë°©í–¥ì— ë”°ë¼ PLC ì‹ í˜¸ ì „ì†¡
+                if (isZLiftRotationCW) // CW íšŒì „ì´ ì™„ë£Œë¨
                 {
                     isZLiftRotationCW = false;
-                    Debug.Log("CW 180µµ È¸Àü ¿Ï·á!");
-                    // --- Ãß°¡µÈ ºÎºĞ: CW È¸Àü ¿Ï·á ½Ã X12:0 ½ÅÈ£ Àü¼Û ---
+                    Debug.Log("CW 180ë„ íšŒì „ ì™„ë£Œ!");
+                    // --- ì¶”ê°€ëœ ë¶€ë¶„: CW íšŒì „ ì™„ë£Œ ì‹œ X12:0 ì‹ í˜¸ ì „ì†¡ ---
                     if (actUtlManager != null)
                     {
                         actUtlManager.SendCommandToPlc("X12:1");
                     }
-                    // --- Ãß°¡µÈ ºÎºĞ ³¡ ---
+                    // --- ì¶”ê°€ëœ ë¶€ë¶„ ë ---
                 }
-                else if (isZLiftRotationCCW) // CCW È¸ÀüÀÌ ¿Ï·áµÊ
+                else if (isZLiftRotationCCW) // CCW íšŒì „ì´ ì™„ë£Œë¨
                 {
                     isZLiftRotationCCW = false;
-                    Debug.Log("CCW 180µµ È¸Àü ¿Ï·á!");
-                    // --- Ãß°¡µÈ ºÎºĞ: CCW È¸Àü ¿Ï·á ½Ã X13:0 ½ÅÈ£ Àü¼Û ---
+                    Debug.Log("CCW 180ë„ íšŒì „ ì™„ë£Œ!");
+                    // --- ì¶”ê°€ëœ ë¶€ë¶„: CCW íšŒì „ ì™„ë£Œ ì‹œ X13:0 ì‹ í˜¸ ì „ì†¡ ---
                     if (actUtlManager != null)
                     {
                         actUtlManager.SendCommandToPlc("X13:1");
                     }
-                    // --- Ãß°¡µÈ ºÎºĞ ³¡ ---
+                    // --- ì¶”ê°€ëœ ë¶€ë¶„ ë ---
                 }
             }
         }
@@ -70,81 +70,81 @@ public class CarriageFrameRT : MonoBehaviour
 
     public void ActivateZLiftRotationCW()
     {
-        // ÀÌ¹Ì È¸Àü ÁßÀÌ¶ó¸é »õ·Î¿î È¸Àü ¸í·É ¹«½Ã
+        // ì´ë¯¸ íšŒì „ ì¤‘ì´ë¼ë©´ ìƒˆë¡œìš´ íšŒì „ ëª…ë ¹ ë¬´ì‹œ
         if (isRotating) return;
 
         isZLiftRotationCW = true;
-        isZLiftRotationCCW = false; // ¹İ´ë ¹æÇâ ÇÃ·¡±×´Â false
-        isRotating = true; // È¸Àü ½ÃÀÛ
+        isZLiftRotationCCW = false; // ë°˜ëŒ€ ë°©í–¥ í”Œë˜ê·¸ëŠ” false
+        isRotating = true; // íšŒì „ ì‹œì‘
 
-        startRotation = transform.rotation; // ÇöÀç È¸Àü°ªÀ» ½ÃÀÛÁ¡À¸·Î ÀúÀå
-        // ÇöÀç È¸Àü¿¡¼­ ZÃàÀ» Áß½ÉÀ¸·Î 180µµ ½Ã°è ¹æÇâÀ¸·Î È¸ÀüÇÏ´Â ¸ñÇ¥ È¸Àü°ª °è»ê
+        startRotation = transform.rotation; // í˜„ì¬ íšŒì „ê°’ì„ ì‹œì‘ì ìœ¼ë¡œ ì €ì¥
+        // í˜„ì¬ íšŒì „ì—ì„œ Zì¶•ì„ ì¤‘ì‹¬ìœ¼ë¡œ 180ë„ ì‹œê³„ ë°©í–¥ìœ¼ë¡œ íšŒì „í•˜ëŠ” ëª©í‘œ íšŒì „ê°’ ê³„ì‚°
         targetRotation = startRotation * Quaternion.Euler(180f, 0, 0);
-        Debug.Log("CW 180µµ È¸Àü ½ÃÀÛ!");
+        Debug.Log("CW 180ë„ íšŒì „ ì‹œì‘!");
 
-        // --- Ãß°¡µÈ ºÎºĞ: È¸Àü ½ÃÀÛ ½Ã X9:1 ½ÅÈ£ Àü¼Û ---
+        // --- ì¶”ê°€ëœ ë¶€ë¶„: íšŒì „ ì‹œì‘ ì‹œ X9:1 ì‹ í˜¸ ì „ì†¡ ---
         if (actUtlManager != null)
         {
             actUtlManager.SendCommandToPlc("X12:0"); 
         }
-        // --- Ãß°¡µÈ ºÎºĞ ³¡ ---
+        // --- ì¶”ê°€ëœ ë¶€ë¶„ ë ---
     }
 
     public void DeactivateZLiftRotationCW()
     {
-        // ÀÌ ½ºÅ©¸³Æ®¿¡¼­´Â 180µµ È¸ÀüÀÌ ¿Ï·áµÇ¸é ÀÚµ¿À¸·Î isRotatingÀÌ false°¡ µÇ¹Ç·Î
-        // ÀÌ Deactivate ÇÔ¼ö°¡ Á÷Á¢ÀûÀ¸·Î È¸ÀüÀ» ¸ØÃß´Â ¿ªÇÒÀº ÇÏÁö ¾Ê½À´Ï´Ù.
-        // ÇÏÁö¸¸ ¿ÜºÎ ½Ã½ºÅÛ°úÀÇ ÀÏ°ü¼ºÀ» À§ÇØ PLC ½ÅÈ£ Àü¼Û ·ÎÁ÷À» Ãß°¡ÇÒ ¼ö ÀÖ½À´Ï´Ù.
-        if (isRotating) // ¸¸¾à È¸Àü Áß¿¡ ¿ÜºÎ¿¡¼­ Deactivate°¡ È£ÃâµÈ´Ù¸é
+        // ì´ ìŠ¤í¬ë¦½íŠ¸ì—ì„œëŠ” 180ë„ íšŒì „ì´ ì™„ë£Œë˜ë©´ ìë™ìœ¼ë¡œ isRotatingì´ falseê°€ ë˜ë¯€ë¡œ
+        // ì´ Deactivate í•¨ìˆ˜ê°€ ì§ì ‘ì ìœ¼ë¡œ íšŒì „ì„ ë©ˆì¶”ëŠ” ì—­í• ì€ í•˜ì§€ ì•ŠìŠµë‹ˆë‹¤.
+        // í•˜ì§€ë§Œ ì™¸ë¶€ ì‹œìŠ¤í…œê³¼ì˜ ì¼ê´€ì„±ì„ ìœ„í•´ PLC ì‹ í˜¸ ì „ì†¡ ë¡œì§ì„ ì¶”ê°€í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.
+        if (isRotating) // ë§Œì•½ íšŒì „ ì¤‘ì— ì™¸ë¶€ì—ì„œ Deactivateê°€ í˜¸ì¶œëœë‹¤ë©´
         {
             isRotating = false;
             isZLiftRotationCW = false;
-            // --- Ãß°¡µÈ ºÎºĞ: ¼öµ¿ ºñÈ°¼ºÈ­ ½Ã X9:0 ½ÅÈ£ Àü¼Û ---
+            // --- ì¶”ê°€ëœ ë¶€ë¶„: ìˆ˜ë™ ë¹„í™œì„±í™” ì‹œ X9:0 ì‹ í˜¸ ì „ì†¡ ---
             if (actUtlManager != null)
             {
                 actUtlManager.SendCommandToPlc("X12:1");
             }
-            // --- Ãß°¡µÈ ºÎºĞ ³¡ ---
+            // --- ì¶”ê°€ëœ ë¶€ë¶„ ë ---
         }
     }
 
     public void ActivateZLiftRotationCCW()
     {
-        // ÀÌ¹Ì È¸Àü ÁßÀÌ¶ó¸é »õ·Î¿î È¸Àü ¸í·É ¹«½Ã
+        // ì´ë¯¸ íšŒì „ ì¤‘ì´ë¼ë©´ ìƒˆë¡œìš´ íšŒì „ ëª…ë ¹ ë¬´ì‹œ
         if (isRotating) return;
 
         isZLiftRotationCCW = true;
-        isZLiftRotationCW = false; // ¹İ´ë ¹æÇâ ÇÃ·¡±×´Â false
-        isRotating = true; // È¸Àü ½ÃÀÛ
+        isZLiftRotationCW = false; // ë°˜ëŒ€ ë°©í–¥ í”Œë˜ê·¸ëŠ” false
+        isRotating = true; // íšŒì „ ì‹œì‘
 
-        startRotation = transform.rotation; // ÇöÀç È¸Àü°ªÀ» ½ÃÀÛÁ¡À¸·Î ÀúÀå
-        // ÇöÀç È¸Àü¿¡¼­ ZÃàÀ» Áß½ÉÀ¸·Î -180µµ (¹İ½Ã°è ¹æÇâ)·Î È¸ÀüÇÏ´Â ¸ñÇ¥ È¸Àü°ª °è»ê
+        startRotation = transform.rotation; // í˜„ì¬ íšŒì „ê°’ì„ ì‹œì‘ì ìœ¼ë¡œ ì €ì¥
+        // í˜„ì¬ íšŒì „ì—ì„œ Zì¶•ì„ ì¤‘ì‹¬ìœ¼ë¡œ -180ë„ (ë°˜ì‹œê³„ ë°©í–¥)ë¡œ íšŒì „í•˜ëŠ” ëª©í‘œ íšŒì „ê°’ ê³„ì‚°
         targetRotation = startRotation * Quaternion.Euler(-180f, 0, 0);
-        Debug.Log("CCW 180µµ È¸Àü ½ÃÀÛ!");
+        Debug.Log("CCW 180ë„ íšŒì „ ì‹œì‘!");
 
-        // --- Ãß°¡µÈ ºÎºĞ: È¸Àü ½ÃÀÛ ½Ã X9:1 ½ÅÈ£ Àü¼Û ---
+        // --- ì¶”ê°€ëœ ë¶€ë¶„: íšŒì „ ì‹œì‘ ì‹œ X9:1 ì‹ í˜¸ ì „ì†¡ ---
         if (actUtlManager != null)
         {
             actUtlManager.SendCommandToPlc("X13:0"); 
         }
-        // --- Ãß°¡µÈ ºÎºĞ ³¡ ---
+        // --- ì¶”ê°€ëœ ë¶€ë¶„ ë ---
     }
 
     public void DeactivateZLiftRotationCCW()
     {
-        // ÀÌ ½ºÅ©¸³Æ®¿¡¼­´Â 180µµ È¸ÀüÀÌ ¿Ï·áµÇ¸é ÀÚµ¿À¸·Î isRotatingÀÌ false°¡ µÇ¹Ç·Î
-        // ÀÌ Deactivate ÇÔ¼ö°¡ Á÷Á¢ÀûÀ¸·Î È¸ÀüÀ» ¸ØÃß´Â ¿ªÇÒÀº ÇÏÁö ¾Ê½À´Ï´Ù.
-        // ÇÏÁö¸¸ ¿ÜºÎ ½Ã½ºÅÛ°úÀÇ ÀÏ°ü¼ºÀ» À§ÇØ PLC ½ÅÈ£ Àü¼Û ·ÎÁ÷À» Ãß°¡ÇÒ ¼ö ÀÖ½À´Ï´Ù.
-        if (isRotating) // ¸¸¾à È¸Àü Áß¿¡ ¿ÜºÎ¿¡¼­ Deactivate°¡ È£ÃâµÈ´Ù¸é
+        // ì´ ìŠ¤í¬ë¦½íŠ¸ì—ì„œëŠ” 180ë„ íšŒì „ì´ ì™„ë£Œë˜ë©´ ìë™ìœ¼ë¡œ isRotatingì´ falseê°€ ë˜ë¯€ë¡œ
+        // ì´ Deactivate í•¨ìˆ˜ê°€ ì§ì ‘ì ìœ¼ë¡œ íšŒì „ì„ ë©ˆì¶”ëŠ” ì—­í• ì€ í•˜ì§€ ì•ŠìŠµë‹ˆë‹¤.
+        // í•˜ì§€ë§Œ ì™¸ë¶€ ì‹œìŠ¤í…œê³¼ì˜ ì¼ê´€ì„±ì„ ìœ„í•´ PLC ì‹ í˜¸ ì „ì†¡ ë¡œì§ì„ ì¶”ê°€í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.
+        if (isRotating) // ë§Œì•½ íšŒì „ ì¤‘ì— ì™¸ë¶€ì—ì„œ Deactivateê°€ í˜¸ì¶œëœë‹¤ë©´
         {
             isRotating = false;
             isZLiftRotationCCW = false;
-            // --- Ãß°¡µÈ ºÎºĞ: ¼öµ¿ ºñÈ°¼ºÈ­ ½Ã X9:0 ½ÅÈ£ Àü¼Û ---
+            // --- ì¶”ê°€ëœ ë¶€ë¶„: ìˆ˜ë™ ë¹„í™œì„±í™” ì‹œ X9:0 ì‹ í˜¸ ì „ì†¡ ---
             if (actUtlManager != null)
             {
                 actUtlManager.SendCommandToPlc("X13:1"); 
             }
-            // --- Ãß°¡µÈ ºÎºĞ ³¡ ---
+            // --- ì¶”ê°€ëœ ë¶€ë¶„ ë ---
         }
     }
 }
