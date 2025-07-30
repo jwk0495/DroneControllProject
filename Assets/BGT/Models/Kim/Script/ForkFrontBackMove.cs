@@ -1,18 +1,18 @@
-using UnityEngine;
-using System.Collections; // ÄÚ·çÆ¾À» »ç¿ëÇÏÁö ¾ÊÁö¸¸, ÀÏ°ü¼ºÀ» À§ÇØ À¯ÁöÇÏ°Å³ª ÇÊ¿ä ¾øÀ¸¸é »èÁ¦ÇØµµ ¹«¹æÇÕ´Ï´Ù.
+ï»¿using UnityEngine;
+using System.Collections; // ì½”ë£¨í‹´ì„ ì‚¬ìš©í•˜ì§€ ì•Šì§€ë§Œ, ì¼ê´€ì„±ì„ ìœ„í•´ ìœ ì§€í•˜ê±°ë‚˜ í•„ìš” ì—†ìœ¼ë©´ ì‚­ì œí•´ë„ ë¬´ë°©í•©ë‹ˆë‹¤.
 
 public class ForkFrontBackMove : MonoBehaviour
 {
-    // À¯´ÏÆ¼ ¿¡µğÅÍ¿¡¼­ µå·¡±× ¾Ø µå·ÓÀ¸·Î ¿¬°áÇÒ GameObject º¯¼öµé
+    // ìœ ë‹ˆí‹° ì—ë””í„°ì—ì„œ ë“œë˜ê·¸ ì•¤ ë“œë¡­ìœ¼ë¡œ ì—°ê²°í•  GameObject ë³€ìˆ˜ë“¤
     public GameObject Second;
     public GameObject Third;
 
-    // ActUtlManager ÀÎ½ºÅÏ½º ÂüÁ¶ Ãß°¡
+    // ActUtlManager ì¸ìŠ¤í„´ìŠ¤ ì°¸ì¡° ì¶”ê°€
     public ActUtlManager actUtlManager;
 
     private float MoveSpeed = 0.2f;
 
-    // °¢ ÆÄÀÌÇÁ È¦´õÀÇ ½ÃÀÛ À§Ä¡¿Í ¸ñÇ¥ À§Ä¡ º¯¼öµé
+    // ê° íŒŒì´í”„ í™€ë”ì˜ ì‹œì‘ ìœ„ì¹˜ì™€ ëª©í‘œ ìœ„ì¹˜ ë³€ìˆ˜ë“¤
     private Vector3 SecondStartPosition;
     private Vector3 SecondTargetPosition;
     private Vector3 ThirdStartPosition;
@@ -23,110 +23,110 @@ public class ForkFrontBackMove : MonoBehaviour
 
     void Start()
     {
-        // Second¿Í ThirdÀÇ ÃÊ±â À§Ä¡¸¦ ÀúÀåÇØµÎ´Â °ÍÀÌ ÁÁ½À´Ï´Ù.
-        // ÇöÀç ÄÚµå¿¡¼­´Â StartPositionÀ» Activate ½ÃÁ¡¿¡¼­ ´Ù½Ã °¡Á®¿À¹Ç·Î ÀÌ ºÎºĞÀº ÇÊ¼ö´Â ¾Æ´Õ´Ï´Ù.
+        // Secondì™€ Thirdì˜ ì´ˆê¸° ìœ„ì¹˜ë¥¼ ì €ì¥í•´ë‘ëŠ” ê²ƒì´ ì¢‹ìŠµë‹ˆë‹¤.
+        // í˜„ì¬ ì½”ë“œì—ì„œëŠ” StartPositionì„ Activate ì‹œì ì—ì„œ ë‹¤ì‹œ ê°€ì ¸ì˜¤ë¯€ë¡œ ì´ ë¶€ë¶„ì€ í•„ìˆ˜ëŠ” ì•„ë‹™ë‹ˆë‹¤.
     }
 
     // Update is called once per frame
     void Update()
     {
-        // Æ÷Å© ÀüÁø ·ÎÁ÷
+        // í¬í¬ ì „ì§„ ë¡œì§
         if (isForkMoveFront && !isForkMoveBack)
         {
-            // Second ¿ÀºêÁ§Æ® ÀÌµ¿
+            // Second ì˜¤ë¸Œì íŠ¸ ì´ë™
             Second.transform.localPosition = Vector3.MoveTowards(Second.transform.localPosition, SecondTargetPosition, MoveSpeed * Time.deltaTime);
-            // Third ¿ÀºêÁ§Æ® ÀÌµ¿ (Secondº¸´Ù 2¹è ºü¸£°Ô)
+            // Third ì˜¤ë¸Œì íŠ¸ ì´ë™ (Secondë³´ë‹¤ 2ë°° ë¹ ë¥´ê²Œ)
             Third.transform.localPosition = Vector3.MoveTowards(Third.transform.localPosition, ThirdTargetPosition, 2 * MoveSpeed * Time.deltaTime);
 
-            // µÎ ¿ÀºêÁ§Æ® ¸ğµÎ ¸ñÇ¥ À§Ä¡¿¡ µµ´ŞÇß´ÂÁö È®ÀÎ
+            // ë‘ ì˜¤ë¸Œì íŠ¸ ëª¨ë‘ ëª©í‘œ ìœ„ì¹˜ì— ë„ë‹¬í–ˆëŠ”ì§€ í™•ì¸
             if (Vector3.Distance(Second.transform.localPosition, SecondTargetPosition) < 0.001f &&
                 Vector3.Distance(Third.transform.localPosition, ThirdTargetPosition) < 0.001f)
             {
-                // ¸ñÇ¥¿¡ µµ´ŞÇÏ¸é ÀÚµ¿À¸·Î ºñÈ°¼ºÈ­ ¹× PLC ½ÅÈ£ Àü¼Û
+                // ëª©í‘œì— ë„ë‹¬í•˜ë©´ ìë™ìœ¼ë¡œ ë¹„í™œì„±í™” ë° PLC ì‹ í˜¸ ì „ì†¡
                 DeactivateFront();
-                Debug.Log("Æ÷Å© ÀüÁø µ¿ÀÛ ¿Ï·á.");
+                Debug.Log("í¬í¬ ì „ì§„ ë™ì‘ ì™„ë£Œ.");
             }
         }
 
-        // Æ÷Å© ÈÄÁø ·ÎÁ÷
+        // í¬í¬ í›„ì§„ ë¡œì§
         if (isForkMoveBack && !isForkMoveFront)
         {
-            // °¢ PipeHolderÀÇ À§Ä¡¸¦ º¸°£
+            // ê° PipeHolderì˜ ìœ„ì¹˜ë¥¼ ë³´ê°„
             Second.transform.localPosition = Vector3.MoveTowards(Second.transform.localPosition, SecondTargetPosition, MoveSpeed * Time.deltaTime);
             Third.transform.localPosition = Vector3.MoveTowards(Third.transform.localPosition, ThirdTargetPosition, 2 * MoveSpeed * Time.deltaTime);
 
-            // µÎ ¿ÀºêÁ§Æ® ¸ğµÎ ¸ñÇ¥ À§Ä¡¿¡ µµ´ŞÇß´ÂÁö È®ÀÎ
+            // ë‘ ì˜¤ë¸Œì íŠ¸ ëª¨ë‘ ëª©í‘œ ìœ„ì¹˜ì— ë„ë‹¬í–ˆëŠ”ì§€ í™•ì¸
             if (Vector3.Distance(Second.transform.localPosition, SecondTargetPosition) < 0.001f &&
                 Vector3.Distance(Third.transform.localPosition, ThirdTargetPosition) < 0.001f)
             {
-                // ¸ñÇ¥¿¡ µµ´ŞÇÏ¸é ÀÚµ¿À¸·Î ºñÈ°¼ºÈ­ ¹× PLC ½ÅÈ£ Àü¼Û
+                // ëª©í‘œì— ë„ë‹¬í•˜ë©´ ìë™ìœ¼ë¡œ ë¹„í™œì„±í™” ë° PLC ì‹ í˜¸ ì „ì†¡
                 DeactivateBack();
-                Debug.Log("Æ÷Å© ÈÄÁø µ¿ÀÛ ¿Ï·á.");
+                Debug.Log("í¬í¬ í›„ì§„ ë™ì‘ ì™„ë£Œ.");
             }
         }
     }
 
     public void ActivateFront()
     {
-        if (isForkMoveFront || isForkMoveBack) return; // ÀÌ¹Ì ¿òÁ÷ÀÌ°í ÀÖ´Ù¸é Áßº¹ ½ÇÇà ¹æÁö
+        if (isForkMoveFront || isForkMoveBack) return; // ì´ë¯¸ ì›€ì§ì´ê³  ìˆë‹¤ë©´ ì¤‘ë³µ ì‹¤í–‰ ë°©ì§€
         isForkMoveFront = true;
 
-        // ¸ñÇ¥ À§Ä¡ ¼³Á¤
+        // ëª©í‘œ ìœ„ì¹˜ ì„¤ì •
         SecondStartPosition = Second.transform.localPosition;
         SecondTargetPosition = SecondStartPosition + new Vector3(0.9f, 0, 0);
         ThirdStartPosition = Third.transform.localPosition;
         ThirdTargetPosition = ThirdStartPosition + new Vector3(1.8f, 0, 0);
 
-        // --- Ãß°¡µÈ ºÎºĞ: ¿òÁ÷ÀÓ ½ÃÀÛ ½Ã X8:1 ½ÅÈ£ Àü¼Û ---
+        // --- ì¶”ê°€ëœ ë¶€ë¶„: ì›€ì§ì„ ì‹œì‘ ì‹œ X8:1 ì‹ í˜¸ ì „ì†¡ ---
         if (actUtlManager != null)
         {
             actUtlManager.SendCommandToPlc("X10:0");
         }
-        // --- Ãß°¡µÈ ºÎºĞ ³¡ ---
+        // --- ì¶”ê°€ëœ ë¶€ë¶„ ë ---
     }
 
     public void DeactivateFront()
     {
-        if (!isForkMoveFront) return; // ÀÌ¹Ì ºñÈ°¼ºÈ­µÇ¾î ÀÖ´Ù¸é Áßº¹ ½ÇÇà ¹æÁö
+        if (!isForkMoveFront) return; // ì´ë¯¸ ë¹„í™œì„±í™”ë˜ì–´ ìˆë‹¤ë©´ ì¤‘ë³µ ì‹¤í–‰ ë°©ì§€
         isForkMoveFront = false;
 
-        // --- Ãß°¡µÈ ºÎºĞ: ¼öµ¿ ¶Ç´Â ÀÚµ¿ ¿Ï·á ½Ã X8:0 ½ÅÈ£ Àü¼Û ---
+        // --- ì¶”ê°€ëœ ë¶€ë¶„: ìˆ˜ë™ ë˜ëŠ” ìë™ ì™„ë£Œ ì‹œ X8:0 ì‹ í˜¸ ì „ì†¡ ---
         if (actUtlManager != null)
         {
             actUtlManager.SendCommandToPlc("X10:1");
         }
-        // --- Ãß°¡µÈ ºÎºĞ ³¡ ---
+        // --- ì¶”ê°€ëœ ë¶€ë¶„ ë ---
     }
 
     public void ActivateBack()
     {
-        if (isForkMoveFront || isForkMoveBack) return; // ÀÌ¹Ì ¿òÁ÷ÀÌ°í ÀÖ´Ù¸é Áßº¹ ½ÇÇà ¹æÁö
+        if (isForkMoveFront || isForkMoveBack) return; // ì´ë¯¸ ì›€ì§ì´ê³  ìˆë‹¤ë©´ ì¤‘ë³µ ì‹¤í–‰ ë°©ì§€
         isForkMoveBack = true;
 
-        // ¸ñÇ¥ À§Ä¡ ¼³Á¤
+        // ëª©í‘œ ìœ„ì¹˜ ì„¤ì •
         SecondStartPosition = Second.transform.localPosition;
         SecondTargetPosition = SecondStartPosition + new Vector3(-0.9f, 0, 0);
         ThirdStartPosition = Third.transform.localPosition;
         ThirdTargetPosition = ThirdStartPosition + new Vector3(-1.8f, 0, 0);
 
-        // --- Ãß°¡µÈ ºÎºĞ: ¿òÁ÷ÀÓ ½ÃÀÛ ½Ã X8:1 ½ÅÈ£ Àü¼Û ---
+        // --- ì¶”ê°€ëœ ë¶€ë¶„: ì›€ì§ì„ ì‹œì‘ ì‹œ X8:1 ì‹ í˜¸ ì „ì†¡ ---
         if (actUtlManager != null)
         {
             actUtlManager.SendCommandToPlc("X11:0"); 
         }
-        // --- Ãß°¡µÈ ºÎºĞ ³¡ ---
+        // --- ì¶”ê°€ëœ ë¶€ë¶„ ë ---
     }
 
     public void DeactivateBack()
     {
-        if (!isForkMoveBack) return; // ÀÌ¹Ì ºñÈ°¼ºÈ­µÇ¾î ÀÖ´Ù¸é Áßº¹ ½ÇÇà ¹æÁö
+        if (!isForkMoveBack) return; // ì´ë¯¸ ë¹„í™œì„±í™”ë˜ì–´ ìˆë‹¤ë©´ ì¤‘ë³µ ì‹¤í–‰ ë°©ì§€
         isForkMoveBack = false;
 
-        // --- Ãß°¡µÈ ºÎºĞ: ¼öµ¿ ¶Ç´Â ÀÚµ¿ ¿Ï·á ½Ã X8:0 ½ÅÈ£ Àü¼Û ---
+        // --- ì¶”ê°€ëœ ë¶€ë¶„: ìˆ˜ë™ ë˜ëŠ” ìë™ ì™„ë£Œ ì‹œ X8:0 ì‹ í˜¸ ì „ì†¡ ---
         if (actUtlManager != null)
         {
             actUtlManager.SendCommandToPlc("X11:1");
         }
-        // --- Ãß°¡µÈ ºÎºĞ ³¡ ---
+        // --- ì¶”ê°€ëœ ë¶€ë¶„ ë ---
     }
 }
