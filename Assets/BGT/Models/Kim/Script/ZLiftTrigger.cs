@@ -15,11 +15,11 @@ public class ZLiftTrigger : MonoBehaviour
 
     public float moveSpeed = 0.2f;
 
-    private float[] liftWeightMoveDistancesUp = { -1.72f, -1.24f, -0.318f - 0.022097f, -2.5f };
-    private float[] liftWeightMoveDistancesDown = { 0.7977f, 0.318f + 0.022597f, 0.5f + 0.708f + 0.014f, 0.5f };
+    private float[] liftWeightMoveDistancesUp = { -1.72f, -1.24f, -0.340097f, -0.785788f };
+    private float[] liftWeightMoveDistancesDown = { 0.7977f, 0.340597f, 1.228f};
 
-    private float[] carriageFrameMoveDistancesUp = { 1.72f, 1.24f, 0.318f + 0.022507f, 2.5f }; // Y4
-    private float[] carriageFrameMoveDistancesDown = { -0.7977f, -0.318f - 0.022597f, -0.5f-0.708f - 0.014f, -0.5f }; // Y5
+    private float[] carriageFrameMoveDistancesUp = { 1.72f, 1.24f, 0.340097f, 0.785788f }; // Y4
+    private float[] carriageFrameMoveDistancesDown = { -0.7977f, -0.340597f, -1.228f}; // Y5
 
     private Vector3 currentLWLocalTargetPosition;
     private Vector3 currentCFLocalTargetPosition;
@@ -61,7 +61,6 @@ public class ZLiftTrigger : MonoBehaviour
         CHM.ActiveChainCW();
         CHM1.ActiveChainCW();
 
-        // --- 수정된 부분: 움직임 시작 시 X4:1 신호 전송 ---
         if (actUtlManager != null)
         {
             actUtlManager.SendCommandToPlc("X4:0");
@@ -85,12 +84,10 @@ public class ZLiftTrigger : MonoBehaviour
             CHM.DeActiveChainCW();
             CHM1.DeActiveChainCW();
 
-            // --- 수정된 부분: 수동 비활성화 시 X6:0 신호 전송 ---
             if (actUtlManager != null)
             {
                 actUtlManager.SendCommandToPlc("X4:1"); 
             }
-            // --- 수정된 부분 끝 ---
             Debug.Log("ZLiftUp 수동 비활성화. 이동 중지.");
         }
     }
@@ -122,7 +119,6 @@ public class ZLiftTrigger : MonoBehaviour
         CHM.ActiveChainCCW();
         CHM1.ActiveChainCCW();
 
-        // --- 수정된 부분: 움직임 시작 시 X6:1 신호 전송 ---
         if (actUtlManager != null)
         {
             actUtlManager.SendCommandToPlc("X5:0"); 
@@ -146,13 +142,11 @@ public class ZLiftTrigger : MonoBehaviour
             CHM.DeActiveChainCCW();
             CHM1.DeActiveChainCCW();
 
-            // --- 수정된 부분: 수동 비활성화 시 X6:0 신호 전송 ---
             if (actUtlManager != null)
             {
                 actUtlManager.SendCommandToPlc("X5:1"); 
                 Debug.Log("ZLiftTrigger: PLC에 X6:0 (리프트 DOWN 수동 비활성화) 명령 전송.");
             }
-            // --- 수정된 부분 끝 ---
 
             Debug.Log("ZLiftDown 수동 비활성화. 이동 중지.");
         }

@@ -16,9 +16,9 @@ public class XGantry : MonoBehaviour
 
     // 로컬 Y축 이동 거리들 (델타 값)
     // 오른쪽 이동 (Y축 음수 방향)을 위한 이동 거리들 (예: -3.0f면 현재 위치에서 -3.0만큼 이동)
-    private float[] moveDistancesRight = { -0.529f, -1.484753f+0.721753f, -0.263f + 0.038f, -1.185f + 0.018f ,0f}; // 오른쪽 Y8
+    private float[] moveDistancesRight = { -0.529f, -0.763f, -0.225f, -1.167f ,-1.211f - 0.529f}; // 오른쪽 Y8
     // 왼쪽 이동 (Y축 양수 방향)을 위한 이동 거리들 (예: 0.75f면 현재 위치에서 +0.75만큼 이동)
-    private float[] moveDistancesLeft = { 1.135f, 1.409f, 0.2f + 0.12f + 1.031f, 0f }; // 왼쪽 Y9
+    private float[] moveDistancesLeft = { 1.135f, 1.409f, 1.351f, 0f }; // 왼쪽 Y9
 
     // 현재 활성 이동을 위한 최종 목표 위치 (로컬 좌표)
     private Vector3 currentLocalTargetPosition;
