@@ -92,37 +92,42 @@ namespace JWK.Scripts.DropSystem
             switch (_bombsDroppedCount)
             {
                 case 0:
-                    yield return StartCoroutine(RotateAndDropSequence(_bombsDroppedCount, -45f, droneTransform, finalTargetPostion));
+                    yield return StartCoroutine(RotateAndDropSequence(_bombsDroppedCount, -45f, droneTransform));
+                    DetachBombByIndex(_bombsDroppedCount, finalTargetPostion);
                     break;
                 case 1:
-                    yield return StartCoroutine(RotateAndDropSequence(_bombsDroppedCount, -45f, droneTransform, finalTargetPostion));
+                    yield return StartCoroutine(RotateAndDropSequence(_bombsDroppedCount, -45f, droneTransform));
+                    DetachBombByIndex(_bombsDroppedCount, finalTargetPostion);
                     yield return _actionDelayWait;
                     yield return StartCoroutine(ReloadSequence(1));
                     break;
                 case 2:
-                    yield return StartCoroutine(RotateAndDropSequence(_bombsDroppedCount, -45f, droneTransform, finalTargetPostion));
+                    yield return StartCoroutine(RotateAndDropSequence(_bombsDroppedCount, -45f, droneTransform));
+                    DetachBombByIndex(_bombsDroppedCount, finalTargetPostion);
                     break;
                 case 3:
-                    yield return StartCoroutine(RotateAndDropSequence(_bombsDroppedCount, -45f, droneTransform, finalTargetPostion));
+                    yield return StartCoroutine(RotateAndDropSequence(_bombsDroppedCount, -45f, droneTransform));
+                    DetachBombByIndex(_bombsDroppedCount, finalTargetPostion);
                     yield return _actionDelayWait;
                     yield return StartCoroutine(ReloadSequence(2));
                     break;
                 case 4:
-                    yield return StartCoroutine(RotateAndDropSequence(_bombsDroppedCount, -45f, droneTransform, finalTargetPostion));
+                    yield return StartCoroutine(RotateAndDropSequence(_bombsDroppedCount, -45f, droneTransform));
+                    DetachBombByIndex(_bombsDroppedCount, finalTargetPostion);
                     break;
                 case 5:
-                    yield return StartCoroutine(RotateAndDropSequence(_bombsDroppedCount, -45f, droneTransform, finalTargetPostion));
+                    yield return StartCoroutine(RotateAndDropSequence(_bombsDroppedCount, -45f, droneTransform));
+                    DetachBombByIndex(_bombsDroppedCount, finalTargetPostion);
                     yield return _actionDelayWait;
                     yield return StartCoroutine(ReloadSequence(3));
                     break;
             }
 
-            DetachBombByIndex(_bombsDroppedCount, finalTargetPostion);
             _bombsDroppedCount++;
             _isActionInProgress = false;
         }
 
-        private IEnumerator RotateAndDropSequence(int bombIndex, float angle, Transform droneTransform, Vector3 finalTargetPosition)
+        private IEnumerator RotateAndDropSequence(int bombIndex, float angle, Transform droneTransform)
         {
             yield return StartCoroutine(RotateRotor(rotaryOut, angle));
 
