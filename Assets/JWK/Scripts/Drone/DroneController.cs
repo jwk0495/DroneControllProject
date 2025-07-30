@@ -111,6 +111,15 @@ namespace JWK.Scripts.Drone
         [SerializeField] private float rotationSmoothTime = 1.2f;
         [Tooltip("속도 변경(가/감속)이 얼마나 부드럽게 될지 결정합니다. 값을 높이면 가감속이 더 부드러워집니다.")]
         [SerializeField] private float velocitySmoothTime = 1.2f;
+        
+        //====================================================================================
+        // [추가] 착륙 시 부드러운 위치 보정을 위한 변수
+        [Tooltip("착륙 시 최종 위치를 보정하는 힘의 강도입니다.")]
+        [SerializeField] private float landingCorrectionForce = 2.0f;
+        [Tooltip("착륙 시 위치 보정의 저항값입니다. 높을수록 오버슈팅이 줄어듭니다.")]
+        [SerializeField] private float landingCorrectionDamping = 1.5f;
+        //====================================================================================
+
         private Vector3 _smoothedLookDirection;
         private Vector3 _currentSmoothedVelocity;
         private float _decelerationStartDistanceSqr;
@@ -261,16 +270,26 @@ namespace JWK.Scripts.Drone
         
         private void Handle_Landing()
         {
+            // 드론이 지면에 충분히 가까워졌는지 확인
             if (Mathf.Abs(CurrentAltitudeAbs - _targetAltitudeAbs) < 0.15f)
             {
+                // 드론의 움직임이 거의 멈췄는지 확인
                 if (_rb.linearVelocity.sqrMagnitude < 0.01f && _rb.angularVelocity.sqrMagnitude < 0.01f)
                 {
+                    // 물리적 떨림을 방지하기 위해 잠시 Rigidbody를 Kinematic으로 설정
+                    _rb.isKinematic = true; 
+                    // 위치와 회전을 이륙 시의 값으로 정확하게 설정 (미세 오차 보정)
+                    transform.position = _takeoffPosition;
+                    transform.rotation = _takeoffRotation;
+                    // 다시 물리 효과를 받도록 Kinematic 해제
+                    _rb.isKinematic = false;
+
+                    // 상태를 Idle로 변경하고 임무 관련 변수 초기화
                     currentMissionState = DroneMissionState.IdleAtStation;
                     _currentBombLoad = totalBombs;
                     PerformInitialGroundCheckAndSetAltitude();
-            
-                    transform.rotation = _takeoffRotation;
                     
+                    // 착륙 완료 이벤트 호출
                     DroneEvents.LandingSequenceCompleted();
                 }
             }
@@ -619,22 +638,50 @@ namespace JWK.Scripts.Drone
             _rb.AddForce(Vector3.up * Mathf.Clamp(totalVertForce, 0.0f, hoverForce * maxForceMultiplier), ForceMode.Acceleration);
         }
 
+        //====================================================================================
+        // [수정] 착륙 시 수직 하강과 동시에 수평 위치/회전을 부드럽게 보정하는 새 로직
         private void ApplyLandingForce()
         {
+            // 1. 수직 하강 제어
             if (CurrentAltitudeAbs > _targetAltitudeAbs + 0.05f)
             {
                 float descentRate = landingDescentRate;
-                if (CurrentAltitudeAbs < _targetAltitudeAbs + 2.0f) descentRate *= 0.5f;
+                // 지면에 매우 가까워지면 하강 속도를 절반으로 줄여 부드럽게 착지
+                if (CurrentAltitudeAbs < _targetAltitudeAbs + 1.0f)
+                {
+                    descentRate *= 0.5f;
+                }
                 
                 float upwardThrust = Mathf.Max(0, Physics.gravity.magnitude - descentRate);
                 _rb.AddForce(Vector3.up * upwardThrust, ForceMode.Acceleration);
-                
-                ApplyHorizontalDamping();
             }
-        }
 
+            // 2. 수평 위치 보정 (이륙했던 XZ 좌표로 부드럽게 이동)
+            Vector3 targetPosXZ = new Vector3(_takeoffPosition.x, 0, _takeoffPosition.z);
+            Vector3 currentPosXZ = new Vector3(transform.position.x, 0, transform.position.z);
+            Vector3 positionError = targetPosXZ - currentPosXZ;
+            
+            // PD 제어기 원리를 이용한 보정 힘 계산
+            Vector3 correctiveForce = positionError * landingCorrectionForce;
+            
+            Vector3 horizontalVelocity = _rb.linearVelocity;
+            horizontalVelocity.y = 0;
+            
+            // 오버슈팅(목표를 지나치는 현상)을 막기 위해 현재 속도의 반대 방향으로 저항(Damping)을 줌
+            correctiveForce -= horizontalVelocity * landingCorrectionDamping;
+            
+            _rb.AddForce(new Vector3(correctiveForce.x, 0, correctiveForce.z), ForceMode.Acceleration);
+
+            // 3. 회전 보정 (이륙 시의 방향으로 부드럽게 회전)
+            Quaternion targetRotation = _takeoffRotation;
+            float targetAngleY = targetRotation.eulerAngles.y;
+            float angleErrorY = Mathf.DeltaAngle(_rb.rotation.eulerAngles.y, targetAngleY);
+            float pTorque = angleErrorY * Mathf.Deg2Rad * kpRotation; // 기존 회전 제어 변수 재사용
+            float dTorque = -_rb.angularVelocity.y * kdRotation; // 기존 회전 제어 변수 재사용
+            _rb.AddTorque(Vector3.up * Mathf.Clamp(pTorque + dTorque, -maxRotationTorque, maxRotationTorque), ForceMode.Acceleration);
+        }
         //====================================================================================
-        // [수정] HoldingPosition 상태에서 회전이 가능하도록 로직을 수정합니다.
+
         private void ApplyHorizontalAndRotationalForces()
         {
             // 수평/회전 제어가 필요 없는 상태들
@@ -708,7 +755,6 @@ namespace JWK.Scripts.Drone
             float dTorque = -_rb.angularVelocity.y * kdRotation;
             _rb.AddTorque(Vector3.up * Mathf.Clamp(pTorque + dTorque, -maxRotationTorque, maxRotationTorque), ForceMode.Acceleration);
         }
-        //====================================================================================
         
         private void ApplyVisualTilt()
         {

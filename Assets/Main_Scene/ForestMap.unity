@@ -96893,7 +96893,7 @@ MonoBehaviour:
   kpAltitude: 2
   kdAltitude: 2.5
   altitudeSmoothSpeed: 1.5
-  landingDescentRate: 0.4
+  landingDescentRate: 3
   terrainCheckDistance: 200
   groundLayerMask:
     serializedVersion: 2
@@ -96905,6 +96905,8 @@ MonoBehaviour:
   maxRotationTorque: 15
   rotationSmoothTime: 0.8
   velocitySmoothTime: 0.8
+  landingCorrectionForce: 2
+  landingCorrectionDamping: 1.5
 --- !u!1 &1693830051929310726
 GameObject:
   m_ObjectHideFlags: 0
