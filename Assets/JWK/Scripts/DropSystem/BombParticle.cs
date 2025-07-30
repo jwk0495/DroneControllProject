@@ -4,6 +4,7 @@ using UnityEngine;
 // [수정된 부분] 네임스페이스 추가
 using JWK.Scripts;
 using JWK.Scripts.CameraManager;
+using Unity.VisualScripting;
 
 //====================================================================================
 
@@ -68,7 +69,7 @@ namespace JWK.Scripts.DropSystem
 
         private void OnTriggerEnter(Collider other)
         {
-            if (other.GetComponent<Collider>())
+            if (other.GetComponent<Collider>() && other.GameObject().CompareTag("Fire"))
             {
                 HandleImpact(transform.position);
             }

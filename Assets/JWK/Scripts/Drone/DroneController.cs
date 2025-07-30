@@ -10,7 +10,7 @@ using JWK.Scripts.FireManager;
 using SimpleJSON;
 using UnityEngine;
 using WebSocketSharp;
-using JWK.Scripts;
+using JWK.Scripts.Station;
 using JWK.Scripts.CameraManager;
 
 namespace JWK.Scripts.Drone
@@ -20,6 +20,9 @@ namespace JWK.Scripts.Drone
     {
         #region 변수 선언 (Fields and Properties)
 
+        [Header("스테이션 연동")]
+        [SerializeField] private RoofManager roofManager;
+        
         [Header("페이로드 및 임무")]
         [SerializeField] private ExtinguisherDropSystem extinguisherDropSystem;
         public bool IsArrived { get; private set; }
@@ -318,64 +321,6 @@ namespace JWK.Scripts.Drone
             _actionCoroutine = null;
         }
         
-        private void DecideNextAction()
-        {
-            if (currentMissionState != DroneMissionState.RetreatingAfterAction)
-            {
-                return;
-            }
-
-            while (_fireTargetsQueue.Count > 0 && _currentBombLoad > 0)
-            {
-                GameObject nextTarget = _fireTargetsQueue.Dequeue();
-
-                if (nextTarget)
-                {
-                    SetMissionTarget(nextTarget.transform.position);
-                    currentMissionState = DroneMissionState.MovingToTarget;
-                    
-                    //====================================================================================
-                    // [수정된 부분] 다음 화재 타겟으로 임무를 다시 시작한다는 이벤트를 보냅니다.
-                    DroneCameraEvents.MissionStart(transform, nextTarget.transform);
-                    //====================================================================================
-                    return;
-                }
-                else
-                {
-                    Debug.LogWarning("[정보] 이미 파괴된 목표(유령 참조)를 큐에서 제거하고 다음을 탐색합니다.");
-                }
-            }
-            
-            _currentTargetPosition = droneStationLocation.position;
-            _targetAltitudeAbs = droneStationLocation.position.y + 20f;
-            currentMissionState = DroneMissionState.ReturningToStation;
-
-            //====================================================================================
-            // [수정된 부분] 기지로 복귀하므로, 카메라 시스템에 복귀 신호를 보냅니다.
-            DroneCameraEvents.ReturnToStation();
-            //====================================================================================
-        }
-        
-        private void SetMissionTarget(Vector3 actualFirePosition)
-        {
-            _actualFireTargetPosition = actualFirePosition;
-
-            if (extinguisherDropSystem && _currentBombLoad > 0)
-            {
-                Vector3 directionToTarget = (actualFirePosition - droneStationLocation.position).normalized;
-                directionToTarget.y = 0;
-                Quaternion predictedRotation = Quaternion.LookRotation(directionToTarget);
-
-                Vector3 bombLocalOffset = extinguisherDropSystem.GetNextBombOffsetFromDroneRoot(this.transform);
-                Vector3 bombWorldOffset = predictedRotation * bombLocalOffset;
-
-                _currentTargetPosition = actualFirePosition - bombWorldOffset;
-            }
-            
-            else
-                _currentTargetPosition = actualFirePosition;
-        }
-        
         public void StartSingleTargetMission(Vector3 targetPosition)
         {
             if (currentMissionState != DroneMissionState.IdleAtStation) return;
@@ -437,6 +382,65 @@ namespace JWK.Scripts.Drone
         
             currentMissionState = DroneMissionState.TakingOff;
         }
+        
+        private void SetMissionTarget(Vector3 actualFirePosition)
+        {
+            _actualFireTargetPosition = actualFirePosition;
+
+            if (extinguisherDropSystem && _currentBombLoad > 0)
+            {
+                Vector3 directionToTarget = (actualFirePosition - droneStationLocation.position).normalized;
+                directionToTarget.y = 0;
+                Quaternion predictedRotation = Quaternion.LookRotation(directionToTarget);
+
+                Vector3 bombLocalOffset = extinguisherDropSystem.GetNextBombOffsetFromDroneRoot(this.transform);
+                Vector3 bombWorldOffset = predictedRotation * bombLocalOffset;
+
+                _currentTargetPosition = actualFirePosition - bombWorldOffset;
+            }
+            
+            else
+                _currentTargetPosition = actualFirePosition;
+        }
+        
+        private void DecideNextAction()
+        {
+            if (currentMissionState != DroneMissionState.RetreatingAfterAction)
+            {
+                return;
+            }
+
+            while (_fireTargetsQueue.Count > 0 && _currentBombLoad > 0)
+            {
+                GameObject nextTarget = _fireTargetsQueue.Dequeue();
+
+                if (nextTarget)
+                {
+                    SetMissionTarget(nextTarget.transform.position);
+                    currentMissionState = DroneMissionState.MovingToTarget;
+                    
+                    //====================================================================================
+                    // [수정된 부분] 다음 화재 타겟으로 임무를 다시 시작한다는 이벤트를 보냅니다.
+                    DroneCameraEvents.MissionStart(transform, nextTarget.transform);
+                    //====================================================================================
+                    return;
+                }
+                else
+                {
+                    Debug.LogWarning("[정보] 이미 파괴된 목표(유령 참조)를 큐에서 제거하고 다음을 탐색합니다.");
+                }
+            }
+            
+            _currentTargetPosition = droneStationLocation.position;
+            _targetAltitudeAbs = droneStationLocation.position.y + 20f;
+            currentMissionState = DroneMissionState.ReturningToStation;
+
+            //====================================================================================
+            // [수정된 부분] 기지로 복귀하므로, 카메라 시스템에 복귀 신호를 보냅니다.
+            DroneCameraEvents.ReturnToStation();
+            //====================================================================================
+        }
+        
         #endregion
 
         #region 드론 물리 및 상태 업데이트 (Physics & Status Updates)
