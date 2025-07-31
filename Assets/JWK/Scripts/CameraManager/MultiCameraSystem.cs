@@ -37,7 +37,7 @@ namespace JWK.Scripts
         [Tooltip("카메라의 로컬 회전 값입니다. (오일러 각)")]
         [SerializeField] private Vector3 _mechanismViewLocalRotation = new Vector3(15, -30, 0);
         [Tooltip("메커니즘 뷰가 보여지는 시간입니다.")]
-        [SerializeField] private float _mechanismViewDuration = 3.0f;
+        [SerializeField] private float _mechanismViewDuration = 7.0f;
 
         private enum CameraMode { Follow, Orbit, Idle }
         private CameraMode _currentMode = CameraMode.Idle;
