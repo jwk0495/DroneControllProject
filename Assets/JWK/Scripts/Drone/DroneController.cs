@@ -3,14 +3,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
-using System.Threading;
+using UnityEngine;
 using JWK.Scripts.DropSystem;
 using JWK.Scripts.FireManager;
-using SimpleJSON;
-using UnityEngine;
-using WebSocketSharp;
-using JWK.Scripts;
 using JWK.Scripts.CameraManager;
 using JWK.Scripts.Station;
 
@@ -21,6 +16,9 @@ namespace JWK.Scripts.Drone
     {
         #region 변수 선언 (Fields and Properties)
 
+        [Header("Firebase 연동")]
+        [SerializeField] private FirebaseManager firebaseManager;
+
         [Header("페이로드 및 임무")]
         [SerializeField] private ExtinguisherDropSystem extinguisherDropSystem;
         public bool IsArrived { get; private set; }
@@ -29,15 +27,11 @@ namespace JWK.Scripts.Drone
         [SerializeField] private RoofManager roofManager;
         [Tooltip("이륙 후 또는 착륙 완료 후 지붕이 닫히기 전 대기 시간입니다.")]
         [SerializeField] private float roofCloseDelay = 2.5f;
-        // ====================================================================================
-        // [수정] 착륙 하강 시 지붕 열림 지연 시간 변수 추가
         [Tooltip("착륙 하강 시작 후 지붕이 열리기까지의 대기 시간입니다.")]
         [SerializeField] private float roofOpenDelayOnLanding = 4.0f;
-        // ====================================================================================
 
         private Rigidbody _rb;
         private Coroutine _actionCoroutine;
-        private CancellationTokenSource _webSocketCts;
         
         private Queue<GameObject> _fireTargetsQueue;
 
@@ -128,14 +122,7 @@ namespace JWK.Scripts.Drone
         private Vector3 _currentSmoothedVelocity;
         private float _decelerationStartDistanceSqr;
 
-        private WebSocket _ws;
-        private const string ServerUrl = "ws://127.0.0.1:5000/socket.io/?EIO=4&transport=websocket&type=unity_main";
-        private readonly StringBuilder _socketMessageBuilder = new StringBuilder(256);
-        private DroneStatusData _dataToSend;
-
-        private readonly WaitForSeconds _sendDataWait = new WaitForSeconds(0.2f);
         private readonly WaitForSeconds _terrainCheckWait = new WaitForSeconds(0.1f);
-        private readonly WaitForSeconds _reconnectWait = new WaitForSeconds(5f);
         private WaitForSeconds _preActionWait;
         private readonly WaitForFixedUpdate _waitForFixedUpdate = new WaitForFixedUpdate();
 
@@ -158,11 +145,6 @@ namespace JWK.Scripts.Drone
         #region Unity 생명주기 함수 (Lifecycle Methods)
         private void Start()
         {
-            _dataToSend = new DroneStatusData(Vector3.zero, 0, 0, "", "", 0);
-            _webSocketCts = new CancellationTokenSource();
-
-            // ConnectWebSocket();
-            // StartCoroutine(SendDroneDataRoutine());
             StartCoroutine(TerrainCheckRoutine());
             
             PerformInitialGroundCheckAndSetAltitude();
@@ -205,13 +187,6 @@ namespace JWK.Scripts.Drone
 
         private void OnDestroy()
         {
-            _webSocketCts?.Cancel();
-            _webSocketCts?.Dispose();
-
-            if (_ws != null && _ws.IsAlive)
-                _ws.Close(CloseStatusCode.Normal, "Client shutting down");
-            
-            _ws = null;
             StopAllCoroutines();
         }
         #endregion
@@ -387,19 +362,14 @@ namespace JWK.Scripts.Drone
             currentMissionState = DroneMissionState.Landing;
             _targetAltitudeAbs = _takeoffPosition.y;
 
-            // ====================================================================================
-            // [수정] 하강을 시작하고, 설정된 시간(N초) 후에 지붕을 엽니다.
-            // 이렇게 하면 드론이 어느 정도 내려와서 카메라에 가까워졌을 때 지붕이 열리는 것을 볼 수 있습니다.
             yield return new WaitForSeconds(roofOpenDelayOnLanding);
 
             if (roofManager)
             {
                 Debug.Log("지붕 개방을 시작합니다.");
-                yield return roofManager.Open(); // 지붕이 완전히 열릴 때까지 기다립니다.
+                yield return roofManager.Open();
             }
-            // ====================================================================================
 
-            // 착륙 완료 대기
             yield return new WaitUntil(() => currentMissionState == DroneMissionState.IdleAtStation);
             
             Debug.Log("착륙 완료. 잠시 후 지붕을 닫습니다.");
@@ -819,167 +789,62 @@ namespace JWK.Scripts.Drone
 
         private void SendDispatchDataToServer(string missionType, Vector3 targetPosition)
         {
-            DispatchData dispatchData = new DispatchData(missionType, targetPosition);
-            string dispatchJson = JsonUtility.ToJson(dispatchData);
-        
-            _socketMessageBuilder.Clear();
-            _socketMessageBuilder.Append("42[\"unity_dispatch_mission\",");
-            _socketMessageBuilder.Append(dispatchJson);
-            _socketMessageBuilder.Append("]");
-        
-            if (_ws != null && _ws.IsAlive)
+            if (firebaseManager != null)
             {
-                _ws.Send(_socketMessageBuilder.ToString());
+                firebaseManager.SendDispatchData(missionType, targetPosition);
+            }
+            else
+            {
+                Debug.LogWarning("FirebaseManager가 할당되지 않아 임무 파견 데이터를 전송할 수 없습니다.");
             }
         }
 
         #endregion
 
-        // #region 웹소켓 통신 (WebSocket Communication)
-        //
-        // private void ConnectWebSocket()
-        // {
-        //     try
-        //     {
-        //         _ws = new WebSocket(ServerUrl);
-        //         _ws.OnOpen += (sender, e) => { 
-        //             Debug.Log("[Unity] Main Drone WebSocket Connected!");
-        //             _ws.Send("40"); 
-        //         };
-        //     
-        //         _ws.OnMessage += OnWebSocketMessage;
-        //         _ws.OnError += (sender, e) => Debug.LogError($"[Unity] WebSocket Error: {e.Message}");
-        //         _ws.OnClose += (sender, e) => 
-        //         {
-        //             if (this != null && gameObject.activeInHierarchy && !_webSocketCts.IsCancellationRequested)
-        //             {
-        //                 Debug.LogWarning($"[Unity] WebSocket Closed. Code: {e.Code}, Reason: {e.Reason}. Reconnecting...");
-        //                 StartCoroutine(ReconnectWebSocket());
-        //             }
-        //         };
-        //         _ws.Connect();
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         Debug.LogError($"[Unity] WebSocket connection failed: {ex.Message}");
-        //     }
-        // }
-        //
-        // private IEnumerator ReconnectWebSocket()
-        // {
-        //     yield return _reconnectWait;
-        //     if (_ws == null || !_ws.IsAlive)
-        //     {
-        //         ConnectWebSocket();
-        //     }
-        // }
-        //
-        // private IEnumerator SendDroneDataRoutine()
-        // {
-        //     while (true)
-        //     {
-        //         yield return _sendDataWait;
-        //     
-        //         if (_ws != null && _ws.IsAlive)
-        //         {
-        //             _dataToSend.position.x = CurrentPositionAbs.x;
-        //             _dataToSend.position.y = CurrentPositionAbs.y;
-        //             _dataToSend.position.z = CurrentPositionAbs.z;
-        //             _dataToSend.altitude = CurrentAltitudeAbs;
-        //             _dataToSend.battery = batteryLevel;
-        //             _dataToSend.mission_state = _missionStateStrings[(int)currentMissionState];
-        //             _dataToSend.payload_type = _payloadTypeStrings[(int)currentPayload];
-        //             _dataToSend.bomb_load = _currentBombLoad;
-        //             
-        //             string droneDataJson = JsonUtility.ToJson(_dataToSend);
-        //             
-        //             _socketMessageBuilder.Clear();
-        //             _socketMessageBuilder.Append("42[\"unity_main_drone_data\",");
-        //             _socketMessageBuilder.Append(droneDataJson);
-        //             _socketMessageBuilder.Append("]");
-        //             
-        //             _ws.Send(_socketMessageBuilder.ToString());
-        //         }
-        //     }
-        // }
-        //
-        // private class SocketMessageJob
-        // {
-        //     public DroneController Controller;
-        //     public string JsonString;
-        //
-        //     public void Execute()
-        //     {
-        //         try
-        //         {
-        //             JSONNode node = JSON.Parse(JsonString);
-        //             string eventName = node[0].Value;
-        //             JSONNode eventData = node[1];
-        //
-        //             if (eventName == "change_payload_command")
-        //             {
-        //                 Controller.HandleChangePayloadCommand(eventData);
-        //             }
-        //             else if (eventName == "force_return_command")
-        //             {
-        //                 Controller.HandleForceReturnCommand();
-        //             }
-        //             else if (eventName == "emergency_stop_command")
-        //             {
-        //                 Controller.HandleEmergencyStopCommand();
-        //             }
-        //         }
-        //         catch (Exception ex)
-        //         {
-        //             Debug.LogError($"[Unity] Error parsing JSON: {ex.Message} - Data: {JsonString}");
-        //         }
-        //     }
-        // }
-        //
-        // private void OnWebSocketMessage(object sender, MessageEventArgs e)
-        // {
-        //     if (e.Data.StartsWith("42"))
-        //     {
-        //         var job = new SocketMessageJob
-        //         {
-        //             Controller = this,
-        //             JsonString = e.Data.Substring(2)
-        //         };
-        //         UnityMainThreadDispatcher.Instance.Enqueue(job.Execute);
-        //     }
-        //     else if (e.Data == "2")
-        //     { 
-        //         _ws.Send("3");
-        //     }
-        // }
-        //
-        // private void HandleChangePayloadCommand(JSONNode eventData)
-        // {
-        //     if (currentMissionState == DroneMissionState.IdleAtStation)
-        //     {
-        //         if (Enum.TryParse(eventData["payload"].Value, out PayloadType newPayload))
-        //         {
-        //             currentPayload = newPayload;
-        //             Debug.Log($"[Mission] Payload changed to: {currentPayload}");
-        //         }
-        //     }
-        // }
-        //
-        // private void HandleForceReturnCommand()
-        // {
-        //     if (droneStationLocation)
-        //     {
-        //         _currentTargetPosition = droneStationLocation.position;
-        //         currentMissionState = DroneMissionState.EmergencyReturn;
-        //         if (_actionCoroutine != null) StopCoroutine(_actionCoroutine);
-        //     }
-        // }
-        //
-        // private void HandleEmergencyStopCommand()
-        // {
-        //     currentMissionState = DroneMissionState.HoldingPosition;
-        //     if (_actionCoroutine != null) StopCoroutine(_actionCoroutine);
-        // }
-        // #endregion
+        #region Firebase 연동 공개 메서드 (Public Methods for Firebase)
+
+        public DroneStatusData GetCurrentStatusData()
+        {
+            return new DroneStatusData(
+                CurrentPositionAbs,
+                CurrentAltitudeAbs,
+                BatteryLevel,
+                _missionStateStrings[(int)currentMissionState],
+                _payloadTypeStrings[(int)currentPayload],
+                _currentBombLoad
+            );
+        }
+
+        public void HandleForceReturnCommand()
+        {
+            if (droneStationLocation)
+            {
+                _currentTargetPosition = droneStationLocation.position;
+                currentMissionState = DroneMissionState.EmergencyReturn;
+                if (_actionCoroutine != null) StopCoroutine(_actionCoroutine);
+                DroneCameraEvents.ReturnToStation();
+                Debug.Log("[Firebase] 강제 복귀 명령 수신");
+            }
+        }
+
+        public void HandleEmergencyStopCommand()
+        {
+            currentMissionState = DroneMissionState.HoldingPosition;
+            if (_actionCoroutine != null) StopCoroutine(_actionCoroutine);
+            Debug.Log("[Firebase] 긴급 정지 명령 수신");
+        }
+
+        public void HandleChangePayloadCommand(string payload)
+        {
+            if (currentMissionState == DroneMissionState.IdleAtStation)
+            {
+                if (Enum.TryParse(payload, out PayloadType newPayload))
+                {
+                    currentPayload = newPayload;
+                    Debug.Log($"[Firebase][Mission] Payload changed to: {currentPayload}");
+                }
+            }
+        }
+        #endregion
     }
 }

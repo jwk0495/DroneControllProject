@@ -43,6 +43,8 @@ ProjectSettings/UnityConnectSettings.asset    # Unity 클라우드 (사용 안 �
 ProjectSettings/VersionControlSettings.asset  # 개인 Git 설정
 ProjectSettings/ProjectVersion.txt            # Unity 버전 차이
 ProjectSettings/PackageManagerSettings.asset  # 기본 패키지만 사용
+[Aa]ssets/google-services.json                # Firebase Api Key
+[Aa]ssets/google-services.json.meta
 
 # 패키지 관련 (선택적)
 # Packages/packages-lock.json
@@ -91,3 +93,4 @@ __pycache__/
 *~
 
 # *.dll # 주의: Assets/Plugins 폴더의 중요한 dll 파일도 무시될 수 있으므로, 보통 이 규칙은 사용하지 않습니다.
+Assets/google-services.json
