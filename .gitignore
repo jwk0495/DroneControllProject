@@ -43,7 +43,7 @@ ProjectSettings/UnityConnectSettings.asset    # Unity 클라우드 (사용 안 �
 ProjectSettings/VersionControlSettings.asset  # 개인 Git 설정
 ProjectSettings/ProjectVersion.txt            # Unity 버전 차이
 ProjectSettings/PackageManagerSettings.asset  # 기본 패키지만 사용
-Assets\google-services.json
+[Aa]ssets\google-services.json
 
 # 패키지 관련 (선택적)
 # Packages/packages-lock.json
