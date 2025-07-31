@@ -1,3 +1,5 @@
+// ExtinguisherDropSystem.cs
+
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -31,6 +33,8 @@ namespace JWK.Scripts.DropSystem
         // --- 코루틴 캐싱 (GC 최적화) ---
         private WaitForSeconds _actionDelayWait;
         private readonly WaitForSeconds _clearanceDelay = new WaitForSeconds(0.5f);
+        // [추가] 물리 프레임 대기를 위한 캐싱
+        private readonly WaitForFixedUpdate _waitForFixedUpdate = new WaitForFixedUpdate();
 
         private void Awake()
         {
@@ -60,14 +64,11 @@ namespace JWK.Scripts.DropSystem
             _bombsDroppedCount = 0;
         }
 
-        // DroneController가 다음 폭탄의 오프셋을 '드론 루트 기준'으로 계산할 수 있도록 새로운 public 함수를 추가합니다.
         public Vector3 GetNextBombOffsetFromDroneRoot(Transform droneRoot)
         {
             if (_bombsDroppedCount >= bombList.Count) return Vector3.zero;
             GameObject nextBomb = bombList[_bombsDroppedCount];
             if (!nextBomb) return Vector3.zero;
-
-            // 폭탄의 월드 좌표를 드론의 로컬 좌표로 변환하여 반환합니다.
             return droneRoot.InverseTransformPoint(nextBomb.transform.position);
         }
 
@@ -86,38 +87,38 @@ namespace JWK.Scripts.DropSystem
             }
 
             _isActionInProgress = true;
-
             Vector3 finalTargetPostion = targetPosition;
 
+            // [수정] DetachBombByIndex 대신 새로운 코루틴을 호출하도록 변경
             switch (_bombsDroppedCount)
             {
                 case 0:
                     yield return StartCoroutine(RotateAndDropSequence(_bombsDroppedCount, -45f, droneTransform));
-                    DetachBombByIndex(_bombsDroppedCount, finalTargetPostion);
+                    yield return StartCoroutine(DetachAndDropBombCoroutine(_bombsDroppedCount, finalTargetPostion));
                     break;
                 case 1:
                     yield return StartCoroutine(RotateAndDropSequence(_bombsDroppedCount, -45f, droneTransform));
-                    DetachBombByIndex(_bombsDroppedCount, finalTargetPostion);
+                    yield return StartCoroutine(DetachAndDropBombCoroutine(_bombsDroppedCount, finalTargetPostion));
                     yield return _actionDelayWait;
                     yield return StartCoroutine(ReloadSequence(1));
                     break;
                 case 2:
                     yield return StartCoroutine(RotateAndDropSequence(_bombsDroppedCount, -45f, droneTransform));
-                    DetachBombByIndex(_bombsDroppedCount, finalTargetPostion);
+                    yield return StartCoroutine(DetachAndDropBombCoroutine(_bombsDroppedCount, finalTargetPostion));
                     break;
                 case 3:
                     yield return StartCoroutine(RotateAndDropSequence(_bombsDroppedCount, -45f, droneTransform));
-                    DetachBombByIndex(_bombsDroppedCount, finalTargetPostion);
+                    yield return StartCoroutine(DetachAndDropBombCoroutine(_bombsDroppedCount, finalTargetPostion));
                     yield return _actionDelayWait;
                     yield return StartCoroutine(ReloadSequence(2));
                     break;
                 case 4:
                     yield return StartCoroutine(RotateAndDropSequence(_bombsDroppedCount, -45f, droneTransform));
-                    DetachBombByIndex(_bombsDroppedCount, finalTargetPostion);
+                    yield return StartCoroutine(DetachAndDropBombCoroutine(_bombsDroppedCount, finalTargetPostion));
                     break;
                 case 5:
                     yield return StartCoroutine(RotateAndDropSequence(_bombsDroppedCount, -45f, droneTransform));
-                    DetachBombByIndex(_bombsDroppedCount, finalTargetPostion);
+                    yield return StartCoroutine(DetachAndDropBombCoroutine(_bombsDroppedCount, finalTargetPostion));
                     yield return _actionDelayWait;
                     yield return StartCoroutine(ReloadSequence(3));
                     break;
@@ -130,18 +131,13 @@ namespace JWK.Scripts.DropSystem
         private IEnumerator RotateAndDropSequence(int bombIndex, float angle, Transform droneTransform)
         {
             yield return StartCoroutine(RotateRotor(rotaryOut, angle));
-
             GameObject bombToDrop = bombList[bombIndex];
-
             if (bombToDrop)
             {
                 Vector3 bombPositionAfterRotation = bombToDrop.transform.position;
-                
                 Vector3 offset = bombPositionAfterRotation - droneTransform.position;
-                
                 Debug.Log($"<color=yellow>[투하 직전 오프셋 계산]</color> 드론-폭탄 간 최종 오프셋: {offset}");
             }
-            
             yield return _clearanceDelay;
         }
 
@@ -151,29 +147,43 @@ namespace JWK.Scripts.DropSystem
             yield return StartCoroutine(RotateRotor(rotaryOut, 90f));
         }
 
-        private void DetachBombByIndex(int index, Vector3 targetPosition)
+        // --- [수정된 부분] ---
+        // 기존 DetachBombByIndex 함수를 코루틴으로 변경하여 물리 문제를 해결합니다.
+        private IEnumerator DetachAndDropBombCoroutine(int index, Vector3 targetPosition)
         {
             if (bombList == null || index < 0 || index >= bombList.Count)
-                return;
+                yield break;
 
             GameObject bombToDrop = bombList[index];
             if (bombToDrop)
             {
-                bombToDrop.transform.SetParent(null);
-                
+                // Rigidbody 컴포넌트를 미리 가져옵니다.
                 if (bombToDrop.TryGetComponent<Rigidbody>(out var bombRb))
                 {
+                    // 1. 부모-자식 관계를 해제합니다.
+                    bombToDrop.transform.SetParent(null);
+                    
+                    // 2. 물리 제어를 활성화합니다.
                     bombRb.isKinematic = false;
                     bombRb.useGravity = true;
+
+                    // 3. (핵심) 다음 물리 프레임까지 대기합니다.
+                    // 이 한 프레임 동안 물리 엔진이 상속된 속도를 적용할 수 있습니다.
+                    yield return _waitForFixedUpdate;
+
+                    // 4. 이제 어떤 속도가 적용되었든 상관없이 강제로 0으로 만듭니다.
                     bombRb.linearVelocity = Vector3.zero;
                     bombRb.angularVelocity = Vector3.zero;
-                    StartCoroutine(RotateBombToGround(bombToDrop));
-                }
 
-                if (bombToDrop.TryGetComponent<BombParticle>(out var bombParticle))
-                    bombParticle.ActivateGuidance(targetPosition);
+                    // 5. 속도 문제가 해결되었으니 나머지 로직을 실행합니다.
+                    StartCoroutine(RotateBombToGround(bombToDrop));
+                    
+                    if (bombToDrop.TryGetComponent<BombParticle>(out var bombParticle))
+                        bombParticle.ActivateGuidance(targetPosition);
+                }
             }
         }
+        // --- [수정 끝] ---
 
         #region 코루틴 헬퍼 함수 (애니메이션)
 
@@ -190,7 +200,6 @@ namespace JWK.Scripts.DropSystem
                 elapsedTime += Time.deltaTime;
                 yield return null;
             }
-
             rotor.localRotation = targetRot;
         }
 

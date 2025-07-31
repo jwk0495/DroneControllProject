@@ -14,9 +14,8 @@ namespace JWK.Scripts.CameraManager
 
         // ====================================================================================
         // [수정] 목표 지점 도착 이벤트를 Transform 대신 Vector3로 전달하도록 변경합니다.
-        // 이를 통해 DroneController에서 불필요한 게임 오브젝트 생성을 방지할 수 있습니다.
         public static event Action<Vector3> OnArrivedAtDropZone;
-        public static void ArrivedAtDropZone(Vector3 targetPosition) => OnArrivedAtDropZone?.Invoke(targetPosition);
+        public static void ArrivedAtDropZone(Vector3 position) => OnArrivedAtDropZone?.Invoke(position);
         // ====================================================================================
 
         // 소화탄 충돌 (충돌 위치)

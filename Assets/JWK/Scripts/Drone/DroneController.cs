@@ -1,4 +1,4 @@
-// C:\Unity\TeamProject\Assets\JWK\Scripts\DroneController.cs
+// DroneController.cs
 
 using System;
 using System.Collections;
@@ -14,6 +14,7 @@ namespace JWK.Scripts.Drone
     [RequireComponent(typeof(Rigidbody))]
     public class DroneController : MonoBehaviour
     {
+        // ... (기존 변수 선언은 그대로 유지) ...
         #region 변수 선언 (Fields and Properties)
 
         [Header("Firebase 연동")]
@@ -127,6 +128,7 @@ namespace JWK.Scripts.Drone
         private readonly WaitForFixedUpdate _waitForFixedUpdate = new WaitForFixedUpdate();
 
         #endregion
+        // ... (Awake, Start 등 다른 함수는 그대로 유지) ...
 
         private void Awake()
         {
@@ -191,6 +193,45 @@ namespace JWK.Scripts.Drone
         }
         #endregion
 
+
+        private void Handle_MovingToTarget()
+        {
+            Vector3 dronePosXZ = new Vector3(transform.position.x, 0, transform.position.z);
+            Vector3 targetPosXZ = new Vector3(_currentTargetPosition.x, 0, _currentTargetPosition.z);
+            float distanceSqr = (dronePosXZ - targetPosXZ).sqrMagnitude;
+
+            if (distanceSqr < _arrivalDistanceThresholdSqr)
+            {
+                IsArrived = true;
+                currentMissionState = DroneMissionState.PerformingAction;
+
+                // [디버그] 카메라 이벤트 발생 시점 로그
+                Debug.Log($"[DroneController] 타겟 도착. 'ArrivedAtDropZone' 이벤트를 발생시킵니다. 타겟 위치: {_actualFireTargetPosition}");
+                DroneCameraEvents.ArrivedAtDropZone(_actualFireTargetPosition);
+
+                if (_actionCoroutine != null) StopCoroutine(_actionCoroutine);
+                _actionCoroutine = StartCoroutine(PerformActionCoroutine());
+            }
+        }
+        
+        private void Handle_MovingToStation()
+        {
+            Vector3 currentPosXZ = new Vector3(transform.position.x, 0, transform.position.z);
+            Vector3 targetPosXZ = new Vector3(_currentTargetPosition.x, 0, _currentTargetPosition.z);
+            float distanceSqr = (currentPosXZ - targetPosXZ).sqrMagnitude;
+
+            if (distanceSqr < _arrivalDistanceThresholdSqr)
+            {
+                // [디버그] 후퇴 완료 후 다음 행동 결정 시점 로그
+                if (currentMissionState == DroneMissionState.RetreatingAfterAction)
+                {
+                    Debug.Log("[DroneController] 후퇴 완료. 다음 행동을 결정합니다.");
+                    DecideNextAction();
+                }
+            }
+        }
+
+        // ... (다른 핸들러 함수들은 그대로 유지) ...
         #region 드론 임무 및 상태 관리 (Drone Mission & State Logic)
         private void RunStateMachine()
         {
@@ -205,43 +246,91 @@ namespace JWK.Scripts.Drone
             }
         }
         #endregion
-    
+
+        private IEnumerator PerformActionCoroutine()
+        {
+            // [디버그] 액션 코루틴 시작 로그
+            Debug.Log("[DroneController] PerformActionCoroutine 시작. 드론 안정화를 기다립니다.");
+            while (true)
+            {
+                Vector3 horizontalVelocity = _rb.linearVelocity;
+                horizontalVelocity.y = 0;
+                
+                if (horizontalVelocity.sqrMagnitude < 0.01f && _rb.angularVelocity.sqrMagnitude < 0.01f)
+                    break; 
+                
+                yield return _waitForFixedUpdate;
+            }
+            Debug.Log("[DroneController] 드론 안정화 완료. 페이로드 투하를 시작합니다.");
+
+            if (currentPayload == PayloadType.FireExtinguishingBomb)
+            {
+                if(extinguisherDropSystem && _currentBombLoad > 0)
+                {
+                    yield return StartCoroutine(extinguisherDropSystem.DropSingleBomb(_actualFireTargetPosition, this.transform));
+                    _currentBombLoad--;
+                }
+                else
+                    Debug.LogWarning("ExtinguisherDropSystem이 없거나 폭탄을 모두 소진했습니다.");
+            }
+            
+            Debug.Log($"[DroneController] 페이로드 투하 완료. {postDropMoveDelay}초 후 후퇴를 시작합니다.");
+            yield return new WaitForSeconds(postDropMoveDelay);
+
+            Vector3 retreatDirection = -transform.forward;
+            Vector3 retreatPosition = transform.position + retreatDirection * retreatDistance;
+            
+            _currentTargetPosition = retreatPosition;
+            
+            // [디버그] 상태 변경 로그
+            Debug.Log("[DroneController] 후퇴 시작. 임무 상태를 'RetreatingAfterAction'으로 변경합니다.");
+            currentMissionState = DroneMissionState.RetreatingAfterAction;
+        
+            _actionCoroutine = null;
+        }
+        
+        private void DecideNextAction()
+        {
+            // [디버그] DecideNextAction 함수 진입 로그
+            Debug.Log("[DroneController] DecideNextAction 호출됨.");
+
+            if (currentMissionState != DroneMissionState.RetreatingAfterAction)
+            {
+                Debug.LogWarning($"[DroneController] 잘못된 상태({currentMissionState})에서 DecideNextAction이 호출되어 무시합니다.");
+                return;
+            }
+
+            if (SetNextMissionTarget() && _currentBombLoad > 0)
+            {
+                Debug.Log("[DroneController] 남은 타겟이 있어 임무를 계속합니다. 상태를 'MovingToTarget'으로 변경합니다.");
+                currentMissionState = DroneMissionState.MovingToTarget;
+            }
+            else
+            {
+                if (droneStationLocation)
+                {
+                    Debug.Log("[DroneController] 모든 타겟 처리 완료 또는 폭탄 소진. 복귀를 시작합니다.");
+                    _currentTargetPosition = droneStationLocation.position;
+                    _targetAltitudeAbs = droneStationLocation.position.y + 20f;
+                    currentMissionState = DroneMissionState.ReturningToStation;
+                    
+                    // [디버그] 복귀 이벤트 발생 직전 로그
+                    Debug.Log("[DroneController] 'ReturnToStation' 카메라 이벤트를 발생시킵니다.");
+                    DroneCameraEvents.ReturnToStation();
+                }
+                else
+                {
+                    Debug.LogError("복귀할 스테이션이 지정되지 않았습니다! 현재 위치에 정지합니다.");
+                    currentMissionState = DroneMissionState.HoldingPosition;
+                }
+            }
+        }
+        // ... (파일의 나머지 부분은 그대로 유지) ...
         #region 상태별 핸들러 (State Handlers)
         private void Handle_TakingOff()
         {
             if (Mathf.Abs(CurrentAltitudeAbs - _smoothedTargetAltitudeAbs) < 0.5f)
                 currentMissionState = DroneMissionState.MovingToTarget;
-        }
-        
-        private void Handle_MovingToTarget()
-        {
-            Vector3 dronePosXZ = new Vector3(transform.position.x, 0, transform.position.z);
-            Vector3 targetPosXZ = new Vector3(_currentTargetPosition.x, 0, _currentTargetPosition.z);
-            float distanceSqr = (dronePosXZ - targetPosXZ).sqrMagnitude;
-
-            if (distanceSqr < _arrivalDistanceThresholdSqr)
-            {
-                IsArrived = true;
-                currentMissionState = DroneMissionState.PerformingAction;
-
-                DroneCameraEvents.ArrivedAtDropZone(_actualFireTargetPosition);
-
-                if (_actionCoroutine != null) StopCoroutine(_actionCoroutine);
-                _actionCoroutine = StartCoroutine(PerformActionCoroutine());
-            }
-        }
-
-        private void Handle_MovingToStation()
-        {
-            Vector3 currentPosXZ = new Vector3(transform.position.x, 0, transform.position.z);
-            Vector3 targetPosXZ = new Vector3(_currentTargetPosition.x, 0, _currentTargetPosition.z);
-            float distanceSqr = (currentPosXZ - targetPosXZ).sqrMagnitude;
-
-            if (distanceSqr < _arrivalDistanceThresholdSqr)
-            {
-                if (currentMissionState == DroneMissionState.RetreatingAfterAction)
-                    DecideNextAction();
-            }
         }
         
         private void Handle_Landing()
@@ -377,70 +466,6 @@ namespace JWK.Scripts.Drone
             if (roofManager) yield return roofManager.Close();
             
             Debug.Log("임무 완전 종료. 스테이션에 안전하게 격납되었습니다.");
-        }
-
-        private IEnumerator PerformActionCoroutine()
-        {
-            while (true)
-            {
-                Vector3 horizontalVelocity = _rb.linearVelocity;
-                horizontalVelocity.y = 0;
-                
-                if (horizontalVelocity.sqrMagnitude < 0.01f && _rb.angularVelocity.sqrMagnitude < 0.01f)
-                    break; 
-                
-                yield return _waitForFixedUpdate;
-            }
-
-            if (currentPayload == PayloadType.FireExtinguishingBomb)
-            {
-                if(extinguisherDropSystem && _currentBombLoad > 0)
-                {
-                    yield return StartCoroutine(extinguisherDropSystem.DropSingleBomb(_actualFireTargetPosition, this.transform));
-                    _currentBombLoad--;
-                }
-                else
-                    Debug.LogWarning("ExtinguisherDropSystem이 없거나 폭탄을 모두 소진했습니다.");
-            }
-            
-            yield return new WaitForSeconds(postDropMoveDelay);
-
-            Vector3 retreatDirection = -transform.forward;
-            Vector3 retreatPosition = transform.position + retreatDirection * retreatDistance;
-            
-            _currentTargetPosition = retreatPosition;
-
-            currentMissionState = DroneMissionState.RetreatingAfterAction;
-        
-            _actionCoroutine = null;
-        }
-        
-        private void DecideNextAction()
-        {
-            if (currentMissionState != DroneMissionState.RetreatingAfterAction)
-            {
-                return;
-            }
-
-            if (SetNextMissionTarget() && _currentBombLoad > 0)
-            {
-                currentMissionState = DroneMissionState.MovingToTarget;
-            }
-            else
-            {
-                if (droneStationLocation)
-                {
-                    _currentTargetPosition = droneStationLocation.position;
-                    _targetAltitudeAbs = droneStationLocation.position.y + 20f;
-                    currentMissionState = DroneMissionState.ReturningToStation;
-                    DroneCameraEvents.ReturnToStation();
-                }
-                else
-                {
-                    Debug.LogError("Cannot return to station, droneStationLocation is not set! Holding position.");
-                    currentMissionState = DroneMissionState.HoldingPosition;
-                }
-            }
         }
 
         private bool SetNextMissionTarget()

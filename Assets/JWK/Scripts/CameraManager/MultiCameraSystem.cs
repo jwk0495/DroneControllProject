@@ -111,24 +111,34 @@ namespace JWK.Scripts
             }
         }
 
+        // ====================================================================================
+        // [수정] 이벤트 데이터 타입을 Vector3로 다시 변경하여 시스템 전체의 데이터 흐름을 통일합니다.
         private void HandleArrivedAtDropZone(Vector3 fireTargetPosition)
         {
             _orbitTargetPosition = fireTargetPosition;
-            // ====================================================================================
-            // [수정] 코루틴 이름을 더 명확하게 변경하고, Orbit 모드 대신 Follow 모드로 복귀하도록 합니다.
             StartCoroutine(ShowMechanismThenFollow());
-            // ====================================================================================
         }
-
         // ====================================================================================
-        // [수정] 메커니즘 뷰가 끝난 후, Orbit 모드가 아닌 Follow 모드로 복귀하는 코루틴입니다.
+
         private IEnumerator ShowMechanismThenFollow()
         {
+            _currentMode = CameraMode.Idle;
             yield return StartCoroutine(ShowMechanismView());
-            // 클로즈업 연출이 끝나면, 즉시 드론을 따라가는 기본 모드로 돌아갑니다.
+            
+            if (DroneTarget != null && MainCamera != null)
+            {
+                Vector3 immediateTargetPosition = DroneTarget.position + _followOffset;
+                Vector3 lookAtPoint = DroneTarget.position + _lookAtOffset;
+                Quaternion immediateTargetRotation = Quaternion.LookRotation(lookAtPoint - immediateTargetPosition);
+
+                MainCamera.transform.position = immediateTargetPosition;
+                MainCamera.transform.rotation = immediateTargetRotation;
+
+                _cameraFollowVelocity = Vector3.zero;
+            }
+
             _currentMode = CameraMode.Follow;
         }
-        // ====================================================================================
 
         private IEnumerator ShowMechanismView()
         {
@@ -137,15 +147,27 @@ namespace JWK.Scripts
             MainCamera.gameObject.SetActive(false);
             ImpactCamera.gameObject.SetActive(true);
 
-            ImpactCamera.transform.SetParent(DroneTarget);
-            ImpactCamera.transform.localPosition = _mechanismViewLocalOffset;
-            ImpactCamera.transform.localRotation = Quaternion.Euler(_mechanismViewLocalRotation);
-            
-            yield return new WaitForSeconds(_mechanismViewDuration);
-            
-            ImpactCamera.transform.SetParent(null);
-            ImpactCamera.gameObject.SetActive(false);
-            MainCamera.gameObject.SetActive(true);
+            try
+            {
+                ImpactCamera.transform.SetParent(DroneTarget);
+                ImpactCamera.transform.localPosition = _mechanismViewLocalOffset;
+                ImpactCamera.transform.localRotation = Quaternion.Euler(_mechanismViewLocalRotation);
+                
+                yield return new WaitForSeconds(_mechanismViewDuration);
+            }
+            finally
+            {
+                if (ImpactCamera != null)
+                {
+                    ImpactCamera.transform.SetParent(null);
+                    ImpactCamera.gameObject.SetActive(false);
+                }
+                if (MainCamera != null)
+                {
+                    MainCamera.gameObject.SetActive(true);
+                }
+                Debug.Log("카메라 상태가 안전하게 복구되었습니다.");
+            }
         }
         
         public void PositionMechanismCameraForPreview()
@@ -158,7 +180,6 @@ namespace JWK.Scripts
             Debug.Log("메커니즘 카메라 미리보기가 배치되었습니다.");
         }
 
-        // --- 기타 함수 (이전과 동일) ---
         private void HandleMissionStart(Transform startPoint, Transform fireTarget)
         {
             _fireTarget = fireTarget;
@@ -186,6 +207,7 @@ namespace JWK.Scripts
             Quaternion targetRotation = Quaternion.LookRotation(lookAtPoint - MainCamera.transform.position);
             MainCamera.transform.rotation = Quaternion.Slerp(MainCamera.transform.rotation, targetRotation, Time.deltaTime / _rotationSmoothTime);
         }
+        
         private void UpdateSubCameras()
         {
             if (StationCamera != null && StationCamera.gameObject.activeInHierarchy && StationTarget != null)
