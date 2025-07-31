@@ -27,6 +27,13 @@ namespace JWK.Scripts.Drone
 
         [Header("스테이션 연동")]
         [SerializeField] private RoofManager roofManager;
+        [Tooltip("이륙 후 또는 착륙 완료 후 지붕이 닫히기 전 대기 시간입니다.")]
+        [SerializeField] private float roofCloseDelay = 2.5f;
+        // ====================================================================================
+        // [수정] 착륙 하강 시 지붕 열림 지연 시간 변수 추가
+        [Tooltip("착륙 하강 시작 후 지붕이 열리기까지의 대기 시간입니다.")]
+        [SerializeField] private float roofOpenDelayOnLanding = 4.0f;
+        // ====================================================================================
 
         private Rigidbody _rb;
         private Coroutine _actionCoroutine;
@@ -112,13 +119,10 @@ namespace JWK.Scripts.Drone
         [Tooltip("속도 변경(가/감속)이 얼마나 부드럽게 될지 결정합니다. 값을 높이면 가감속이 더 부드러워집니다.")]
         [SerializeField] private float velocitySmoothTime = 1.2f;
         
-        //====================================================================================
-        // [추가] 착륙 시 부드러운 위치 보정을 위한 변수
         [Tooltip("착륙 시 최종 위치를 보정하는 힘의 강도입니다.")]
         [SerializeField] private float landingCorrectionForce = 2.0f;
         [Tooltip("착륙 시 위치 보정의 저항값입니다. 높을수록 오버슈팅이 줄어듭니다.")]
         [SerializeField] private float landingCorrectionDamping = 1.5f;
-        //====================================================================================
 
         private Vector3 _smoothedLookDirection;
         private Vector3 _currentSmoothedVelocity;
@@ -245,11 +249,7 @@ namespace JWK.Scripts.Drone
                 IsArrived = true;
                 currentMissionState = DroneMissionState.PerformingAction;
 
-                // ====================================================================================
-                // [수정] 불필요한 게임 오브젝트 생성을 제거하고, 목표 위치(Vector3)를 직접 이벤트로 전달합니다.
-                // 이렇게 하면 DroneController가 카메라 시스템을 위해 오브젝트를 관리할 필요가 없어집니다.
                 DroneCameraEvents.ArrivedAtDropZone(_actualFireTargetPosition);
-                // ====================================================================================
 
                 if (_actionCoroutine != null) StopCoroutine(_actionCoroutine);
                 _actionCoroutine = StartCoroutine(PerformActionCoroutine());
@@ -331,6 +331,7 @@ namespace JWK.Scripts.Drone
 
         private IEnumerator FullMissionSequence()
         {
+            // --- 1. 이륙 준비 ---
             Debug.Log("출동 명령 수신! 이륙 시퀀스를 시작합니다.");
             if (roofManager) yield return roofManager.Open();
             else Debug.LogWarning("RoofManager가 연결되지 않았습니다.");
@@ -342,12 +343,16 @@ namespace JWK.Scripts.Drone
                 yield break; 
             }
 
+            // --- 2. 이륙 ---
             yield return StartCoroutine(TakeOffSequenceCoroutine());
             
             yield return new WaitUntil(() => currentMissionState == DroneMissionState.MovingToTarget);
-            Debug.Log("이륙 완료. 지붕을 닫습니다.");
-            if (roofManager) roofManager.Close(); 
+            
+            Debug.Log("이륙 완료. 잠시 후 지붕을 닫습니다.");
+            yield return new WaitForSeconds(roofCloseDelay);
+            if (roofManager) yield return roofManager.Close(); 
 
+            // --- 3. 임무 수행 및 복귀 ---
             yield return new WaitUntil(() => currentMissionState == DroneMissionState.ReturningToStation || currentMissionState == DroneMissionState.EmergencyReturn);
             Debug.Log("임무 지역에서 복귀합니다. 스테이션으로 이동합니다.");
 
@@ -359,6 +364,7 @@ namespace JWK.Scripts.Drone
             });
             Debug.Log("스테이션 상공 도착. 최종 착륙 위치로 이동합니다.");
 
+            // --- 4. 착륙 준비 (위치 및 방향 정렬) ---
             Vector3 finalApproachPoint = new Vector3(_takeoffPosition.x, transform.position.y, _takeoffPosition.z);
             _currentTargetPosition = finalApproachPoint;
             currentMissionState = DroneMissionState.ReturningToStation; 
@@ -371,21 +377,35 @@ namespace JWK.Scripts.Drone
             Debug.Log("착륙 위치 상공 도착. 방향 정렬 시작.");
 
             currentMissionState = DroneMissionState.HoldingPosition; 
-            
             _smoothedLookDirection = _takeoffRotation * Vector3.forward;
 
+            // 회전이 완료될 때까지 대기
             yield return new WaitUntil(() => Quaternion.Angle(transform.rotation, _takeoffRotation) < 1.0f);
-            Debug.Log("방향 정렬 완료. 착륙을 시작합니다.");
+            Debug.Log("방향 정렬 완료. 착륙 하강을 시작합니다.");
 
-            if (roofManager) yield return roofManager.Open();
-
+            // --- 5. 착륙 ---
             currentMissionState = DroneMissionState.Landing;
             _targetAltitudeAbs = _takeoffPosition.y;
 
-            yield return new WaitUntil(() => currentMissionState == DroneMissionState.IdleAtStation);
-            Debug.Log("착륙 완료. 지붕을 닫습니다.");
+            // ====================================================================================
+            // [수정] 하강을 시작하고, 설정된 시간(N초) 후에 지붕을 엽니다.
+            // 이렇게 하면 드론이 어느 정도 내려와서 카메라에 가까워졌을 때 지붕이 열리는 것을 볼 수 있습니다.
+            yield return new WaitForSeconds(roofOpenDelayOnLanding);
 
+            if (roofManager)
+            {
+                Debug.Log("지붕 개방을 시작합니다.");
+                yield return roofManager.Open(); // 지붕이 완전히 열릴 때까지 기다립니다.
+            }
+            // ====================================================================================
+
+            // 착륙 완료 대기
+            yield return new WaitUntil(() => currentMissionState == DroneMissionState.IdleAtStation);
+            
+            Debug.Log("착륙 완료. 잠시 후 지붕을 닫습니다.");
+            yield return new WaitForSeconds(roofCloseDelay);
             if (roofManager) yield return roofManager.Close();
+            
             Debug.Log("임무 완전 종료. 스테이션에 안전하게 격납되었습니다.");
         }
 
