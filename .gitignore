@@ -93,3 +93,4 @@ __pycache__/
 *~
 
 # *.dll # 주의: Assets/Plugins 폴더의 중요한 dll 파일도 무시될 수 있으므로, 보통 이 규칙은 사용하지 않습니다.
+Assets/google-services.json
