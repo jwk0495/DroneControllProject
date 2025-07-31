@@ -23,7 +23,7 @@ namespace JWK.Scripts.DropSystem
         private readonly bool enableGuidance = true;
 
         [Tooltip("목표 지점까지 유도되는 데 걸리는 시간입니다. 짧을수록 빠르게 유도됩니다.")] [SerializeField]
-        private float guidanceDuration = 1.5f;
+        private float guidanceDuration = 3.5f;
 
         private Rigidbody _rb;
         private Coroutine _guidanceCoroutine;
