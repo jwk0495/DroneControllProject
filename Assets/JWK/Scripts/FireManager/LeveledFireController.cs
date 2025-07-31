@@ -54,7 +54,7 @@ namespace JWK.Scripts.FireManager
             {
                 fireParticleSystem.Play();
             }
-            Debug.Log($"<color=green><b>[화재 활성화 & 초기화]</b></color> {this.name}의 상태가 리셋되었습니다. Current Hits: {currentHits}", this.gameObject);
+            // Debug.Log($"<color=green><b>[화재 활성화 & 초기화]</b></color> {this.name}의 상태가 리셋되었습니다. Current Hits: {currentHits}", this.gameObject);
         }
 
         // 소화탄에 의해 호출될 함수
@@ -115,7 +115,7 @@ namespace JWK.Scripts.FireManager
         private IEnumerator ExtinguishFire()
         {
             // isExtinguished = true;
-            Debug.Log("<color=cyan>화재 진압 완료!</color>");
+            // Debug.Log("<color=cyan>화재 진압 완료!</color>");
 
             // 크기 변경 애니메이션이 끝날 때까지 기다립니다.
             yield return new WaitForSeconds(sizeChangeDuration);

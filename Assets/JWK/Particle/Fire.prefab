@@ -48736,7 +48736,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3e0f9738776935044bab369e9e764d75, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  bombsToExtinguish: 2
+  bombsToExtinguish: 5
   sizeChangeDuration: 1
 --- !u!1 &8986170565123019627
 GameObject:
