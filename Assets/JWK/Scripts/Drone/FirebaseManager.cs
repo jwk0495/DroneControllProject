@@ -2,10 +2,11 @@
 
 using UnityEngine;
 using Firebase;
-using Firebase.Database;
+using Firebase.Firestore;
 using Firebase.Extensions;
-using System.Collections.Generic; // Dictionary 사용을 위해 추가
-using System; // Enum 사용을 위해 추가
+using System.Collections;
+using System.Collections.Generic;
+using System;
 
 namespace JWK.Scripts.Drone
 {
@@ -14,8 +15,13 @@ namespace JWK.Scripts.Drone
         [Header("연동할 드론 컨트롤러")]
         [SerializeField] private DroneController droneController;
 
-        private DatabaseReference _databaseReference;
+        [Header("Firebase 설정")]
+        [Tooltip("데이터를 전송할 주기 (초)")]
+        [SerializeField] private float dataSendInterval = 0.2f;
+
+        private FirebaseFirestore _firestore;
         private bool _isFirebaseInitialized = false;
+        private ListenerRegistration _commandListener;
 
         private void Start()
         {
@@ -33,117 +39,124 @@ namespace JWK.Scripts.Drone
                     return;
                 }
 
-                FirebaseApp app = FirebaseApp.DefaultInstance;
-                _databaseReference = FirebaseDatabase.DefaultInstance.RootReference;
+                _firestore = FirebaseFirestore.DefaultInstance;
                 _isFirebaseInitialized = true;
-                Debug.Log("Firebase 초기화 및 데이터베이스 참조 설정 완료.");
+                Debug.Log("Firebase 초기화 및 Firestore 인스턴스 설정 완료.");
 
                 ListenForCommands();
+                StartCoroutine(SendDroneDataRoutine());
             });
-        }
-
-        private void Update()
-        {
-            // Firebase가 초기화되었고, DroneController가 유효할 때만 데이터 전송
-            if (_isFirebaseInitialized && droneController != null)
-            {
-                // 매 프레임 대신 일정 주기로 보내고 싶다면 Coroutine으로 변경 가능
-                SendDroneData();
-            }
-        }
-
-        /// <summary>
-        /// 드론의 현재 상태를 Firebase에 전송합니다.
-        /// </summary>
-        private void SendDroneData()
-        {
-            DroneStatusData dataToSend = droneController.GetCurrentStatusData();
-            string droneDataJson = JsonUtility.ToJson(dataToSend);
-            _databaseReference.Child("drones").Child("drone_1").Child("status").SetRawJsonValueAsync(droneDataJson);
-        }
-
-        /// <summary>
-        /// 임무 파견 데이터를 Firebase에 전송합니다.
-        /// </summary>
-        public void SendDispatchData(string missionType, Vector3 targetPosition)
-        {
-            if (!_isFirebaseInitialized) return;
-
-            DispatchData dispatchData = new DispatchData(missionType, targetPosition);
-            string dispatchJson = JsonUtility.ToJson(dispatchData);
-            _databaseReference.Child("dispatches").Push().SetRawJsonValueAsync(dispatchJson);
-        }
-
-        /// <summary>
-        /// Firebase로부터 오는 명령을 수신 대기합니다.
-        /// </summary>
-        private void ListenForCommands()
-        {
-            _databaseReference.Child("drones").Child("drone_1").Child("command").ValueChanged += HandleCommand;
-        }
-
-        /// <summary>
-        /// 수신된 명령을 처리합니다.
-        /// </summary>
-        private void HandleCommand(object sender, ValueChangedEventArgs args)
-        {
-            if (args.DatabaseError != null)
-            {
-                Debug.LogError(args.DatabaseError.Message);
-                return;
-            }
-            if (args.Snapshot == null || !args.Snapshot.Exists)
-            {
-                return;
-            }
-
-            var commandData = args.Snapshot.Value as Dictionary<string, object>;
-            if (commandData == null || !commandData.ContainsKey("type")) return;
-
-            string commandType = commandData["type"].ToString();
-            Debug.Log($"[Firebase] 수신된 명령: {commandType}");
-
-            // DroneController의 공개 메서드를 호출하여 명령 실행
-            switch (commandType)
-            {
-                case "force_return":
-                    droneController.HandleForceReturnCommand();
-                    break;
-                case "emergency_stop":
-                    droneController.HandleEmergencyStopCommand();
-                    break;
-                case "change_payload":
-                    if (commandData.ContainsKey("payload"))
-                    {
-                        droneController.HandleChangePayloadCommand(commandData["payload"].ToString());
-                    }
-                    break;
-            }
-
-            // 처리된 명령은 데이터베이스에서 삭제하여 중복 실행 방지
-            args.Snapshot.Reference.RemoveValueAsync();
         }
 
         private void OnDestroy()
         {
-            if (_databaseReference != null)
+            _commandListener?.Stop();
+        }
+
+        private IEnumerator SendDroneDataRoutine()
+        {
+            var wait = new WaitForSeconds(dataSendInterval);
+            while (true)
             {
-                _databaseReference.Child("drones").Child("drone_1").Child("command").ValueChanged -= HandleCommand;
+                yield return wait;
+                if (_isFirebaseInitialized && droneController != null)
+                {
+                    SendDroneStatus();
+                }
             }
         }
-    }
 
-    // DroneController와 공유할 데이터 구조체들
-    [System.Serializable]
-    public class DispatchData
-    {
-        public string mission_type;
-        public SerializableVector3 target_position;
-
-        public DispatchData(string missionType, Vector3 targetPosition)
+        private void SendDroneStatus()
         {
-            this.mission_type = missionType;
-            this.target_position = new SerializableVector3(targetPosition);
+            DroneStatusData statusData = droneController.GetCurrentStatusData();
+
+            // GeoPoint 대신 Map(Dictionary) 형태로 좌표 저장
+            var positionMap = new Dictionary<string, float>
+            {
+                { "x", statusData.position.x },
+                { "y", statusData.position.y },
+                { "z", statusData.position.z }
+            };
+
+            var statusDict = new Dictionary<string, object>
+            {
+                { "position", positionMap },
+                { "altitude", statusData.altitude },
+                { "battery", statusData.battery },
+                { "mission_state", statusData.mission_state },
+                { "payload_type", statusData.payload_type },
+                { "bomb_load", statusData.bomb_load },
+                { "timestamp", Timestamp.GetCurrentTimestamp() }
+            };
+
+            _firestore.Collection("drones").Document("drone_1").SetAsync(statusDict);
+        }
+
+        public void SendDispatchData(string missionType, Vector3 targetPosition)
+        {
+            if (!_isFirebaseInitialized) return;
+
+            // GeoPoint 대신 Map(Dictionary) 형태로 좌표 저장
+            var targetPositionMap = new Dictionary<string, float>
+            {
+                { "x", targetPosition.x },
+                { "y", targetPosition.y },
+                { "z", targetPosition.z }
+            };
+
+            var dispatchData = new Dictionary<string, object>
+            {
+                { "mission_type", missionType },
+                { "target_position", targetPositionMap },
+                { "dispatched_at", Timestamp.GetCurrentTimestamp() }
+            };
+            
+            _firestore.Collection("dispatches").AddAsync(dispatchData);
+        }
+
+        private void ListenForCommands()
+        {
+            DocumentReference docRef = _firestore.Collection("drones").Document("drone_1");
+            _commandListener = docRef.Listen(snapshot =>
+            {
+                if (!snapshot.Exists)
+                {
+                    Debug.LogWarning("[Firestore] drone_1 문서가 존재하지 않습니다.");
+                    return;
+                }
+
+                if (snapshot.TryGetValue("command", out object commandValue))
+                {
+                    string commandType = commandValue.ToString();
+                    Debug.Log($"[Firestore] 수신된 명령: {commandType}");
+
+                    switch (commandType)
+                    {
+                        case "force_return":
+                            droneController.HandleForceReturnCommand();
+                            break;
+                        case "emergency_stop":
+                            droneController.HandleEmergencyStopCommand();
+                            break;
+                        case "start_random_fire_mission": // 랜덤 화재 임무 시작 명령 추가
+                            droneController.DispatchMissionToRandomFire();
+                            break;
+                        case "change_payload":
+                            if (snapshot.TryGetValue("command_payload", out object payloadValue))
+                            {
+                                droneController.HandleChangePayloadCommand(payloadValue.ToString());
+                            }
+                            break;
+                    }
+
+                    var updates = new Dictionary<string, object>
+                    {
+                        { "command", FieldValue.Delete },
+                        { "command_payload", FieldValue.Delete }
+                    };
+                    snapshot.Reference.UpdateAsync(updates);
+                }
+            });
         }
     }
 }
