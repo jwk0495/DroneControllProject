@@ -16938,16 +16938,14 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1926304576982325651}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 632459b7c7b28a64bb53c299efe03771, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   impactVFXPrefab: {fileID: 100000, guid: 4ecfa3d3919108f4fbff80d1c4d920a1, type: 3}
-  groundLayerMask:
-    serializedVersion: 2
-    m_Bits: 8
-  guidanceDuration: 2
+  enableGuidance: 0
+  guidanceDuration: 4
 --- !u!136 &9091756859565351250
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -22178,16 +22176,14 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2469113723780565946}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 632459b7c7b28a64bb53c299efe03771, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   impactVFXPrefab: {fileID: 100000, guid: 4ecfa3d3919108f4fbff80d1c4d920a1, type: 3}
-  groundLayerMask:
-    serializedVersion: 2
-    m_Bits: 8
-  guidanceDuration: 2
+  enableGuidance: 0
+  guidanceDuration: 4
 --- !u!136 &621549022655177338
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -29224,16 +29220,14 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3398339934273572927}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 632459b7c7b28a64bb53c299efe03771, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   impactVFXPrefab: {fileID: 100000, guid: 4ecfa3d3919108f4fbff80d1c4d920a1, type: 3}
-  groundLayerMask:
-    serializedVersion: 2
-    m_Bits: 8
-  guidanceDuration: 2
+  enableGuidance: 0
+  guidanceDuration: 4
 --- !u!136 &1125058747038366059
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -31196,16 +31190,14 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3636330625646538683}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 632459b7c7b28a64bb53c299efe03771, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   impactVFXPrefab: {fileID: 100000, guid: 4ecfa3d3919108f4fbff80d1c4d920a1, type: 3}
-  groundLayerMask:
-    serializedVersion: 2
-    m_Bits: 8
-  guidanceDuration: 2
+  enableGuidance: 0
+  guidanceDuration: 4
 --- !u!136 &4752525026100456164
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -51574,16 +51566,14 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6500736762977217065}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 632459b7c7b28a64bb53c299efe03771, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   impactVFXPrefab: {fileID: 100000, guid: 4ecfa3d3919108f4fbff80d1c4d920a1, type: 3}
-  groundLayerMask:
-    serializedVersion: 2
-    m_Bits: 8
-  guidanceDuration: 2
+  enableGuidance: 0
+  guidanceDuration: 4
 --- !u!136 &8335920227212536867
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -53789,16 +53779,14 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6890116297139347943}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 632459b7c7b28a64bb53c299efe03771, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   impactVFXPrefab: {fileID: 100000, guid: 4ecfa3d3919108f4fbff80d1c4d920a1, type: 3}
-  groundLayerMask:
-    serializedVersion: 2
-    m_Bits: 8
-  guidanceDuration: 2
+  enableGuidance: 0
+  guidanceDuration: 4
 --- !u!136 &4415175530269566790
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -61796,7 +61784,7 @@ Rigidbody:
   m_ImplicitTensor: 1
   m_UseGravity: 1
   m_IsKinematic: 0
-  m_Interpolate: 0
+  m_Interpolate: 1
   m_Constraints: 0
   m_CollisionDetection: 1
 --- !u!114 &7410789768016830135
@@ -61811,6 +61799,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a4118144839dd94789b6da07ee22d2c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  firebaseManager: {fileID: 0}
   extinguisherDropSystem: {fileID: 3640196212200995559}
   roofManager: {fileID: 0}
   roofCloseDelay: 2.5
@@ -61823,8 +61812,8 @@ MonoBehaviour:
   moveForce: 15
   droneModelTransform: {fileID: 256305924382030209}
   maxTiltAngle: 15
-  tiltSpringStiffness: 50
-  tiltDamping: 0.25
+  tiltSpringStiffness: 30
+  tiltDamping: 0.1
   droneStationLocation: {fileID: 0}
   missionCruisingAgl: 50
   arrivalDistanceThreshold: 2
