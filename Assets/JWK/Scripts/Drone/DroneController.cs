@@ -27,6 +27,13 @@ namespace JWK.Scripts.Drone
 
         [Header("스테이션 연동")]
         [SerializeField] private RoofManager roofManager;
+        [Tooltip("이륙 후 또는 착륙 완료 후 지붕이 닫히기 전 대기 시간입니다.")]
+        [SerializeField] private float roofCloseDelay = 2.5f;
+        // ====================================================================================
+        // [수정] 착륙 하강 시 지붕 열림 지연 시간 변수 추가
+        [Tooltip("착륙 하강 시작 후 지붕이 열리기까지의 대기 시간입니다.")]
+        [SerializeField] private float roofOpenDelayOnLanding = 4.0f;
+        // ====================================================================================
 
         private Rigidbody _rb;
         private Coroutine _actionCoroutine;
@@ -112,13 +119,10 @@ namespace JWK.Scripts.Drone
         [Tooltip("속도 변경(가/감속)이 얼마나 부드럽게 될지 결정합니다. 값을 높이면 가감속이 더 부드러워집니다.")]
         [SerializeField] private float velocitySmoothTime = 1.2f;
         
-        //====================================================================================
-        // [추가] 착륙 시 부드러운 위치 보정을 위한 변수
         [Tooltip("착륙 시 최종 위치를 보정하는 힘의 강도입니다.")]
         [SerializeField] private float landingCorrectionForce = 2.0f;
         [Tooltip("착륙 시 위치 보정의 저항값입니다. 높을수록 오버슈팅이 줄어듭니다.")]
         [SerializeField] private float landingCorrectionDamping = 1.5f;
-        //====================================================================================
 
         private Vector3 _smoothedLookDirection;
         private Vector3 _currentSmoothedVelocity;
@@ -157,8 +161,8 @@ namespace JWK.Scripts.Drone
             _dataToSend = new DroneStatusData(Vector3.zero, 0, 0, "", "", 0);
             _webSocketCts = new CancellationTokenSource();
 
-            ConnectWebSocket();
-            StartCoroutine(SendDroneDataRoutine());
+            // ConnectWebSocket();
+            // StartCoroutine(SendDroneDataRoutine());
             StartCoroutine(TerrainCheckRoutine());
             
             PerformInitialGroundCheckAndSetAltitude();
@@ -245,10 +249,7 @@ namespace JWK.Scripts.Drone
                 IsArrived = true;
                 currentMissionState = DroneMissionState.PerformingAction;
 
-                var fireTargetFocus = new GameObject("FireTargetFocusPoint");
-                fireTargetFocus.transform.position = _actualFireTargetPosition;
-                DroneCameraEvents.ArrivedAtDropZone(fireTargetFocus.transform);
-                Destroy(fireTargetFocus, 5f); 
+                DroneCameraEvents.ArrivedAtDropZone(_actualFireTargetPosition);
 
                 if (_actionCoroutine != null) StopCoroutine(_actionCoroutine);
                 _actionCoroutine = StartCoroutine(PerformActionCoroutine());
@@ -270,26 +271,19 @@ namespace JWK.Scripts.Drone
         
         private void Handle_Landing()
         {
-            // 드론이 지면에 충분히 가까워졌는지 확인
             if (Mathf.Abs(CurrentAltitudeAbs - _targetAltitudeAbs) < 0.15f)
             {
-                // 드론의 움직임이 거의 멈췄는지 확인
                 if (_rb.linearVelocity.sqrMagnitude < 0.01f && _rb.angularVelocity.sqrMagnitude < 0.01f)
                 {
-                    // 물리적 떨림을 방지하기 위해 잠시 Rigidbody를 Kinematic으로 설정
                     _rb.isKinematic = true; 
-                    // 위치와 회전을 이륙 시의 값으로 정확하게 설정 (미세 오차 보정)
                     transform.position = _takeoffPosition;
                     transform.rotation = _takeoffRotation;
-                    // 다시 물리 효과를 받도록 Kinematic 해제
                     _rb.isKinematic = false;
 
-                    // 상태를 Idle로 변경하고 임무 관련 변수 초기화
                     currentMissionState = DroneMissionState.IdleAtStation;
                     _currentBombLoad = totalBombs;
                     PerformInitialGroundCheckAndSetAltitude();
                     
-                    // 착륙 완료 이벤트 호출
                     DroneEvents.LandingSequenceCompleted();
                 }
             }
@@ -353,14 +347,15 @@ namespace JWK.Scripts.Drone
             yield return StartCoroutine(TakeOffSequenceCoroutine());
             
             yield return new WaitUntil(() => currentMissionState == DroneMissionState.MovingToTarget);
-            Debug.Log("이륙 완료. 지붕을 닫습니다.");
-            if (roofManager) roofManager.Close(); 
+            
+            Debug.Log("이륙 완료. 잠시 후 지붕을 닫습니다.");
+            yield return new WaitForSeconds(roofCloseDelay);
+            if (roofManager) yield return roofManager.Close(); 
 
             // --- 3. 임무 수행 및 복귀 ---
             yield return new WaitUntil(() => currentMissionState == DroneMissionState.ReturningToStation || currentMissionState == DroneMissionState.EmergencyReturn);
             Debug.Log("임무 지역에서 복귀합니다. 스테이션으로 이동합니다.");
 
-            // 스테이션 중앙 근처에 도착할 때까지 대기
             yield return new WaitUntil(() => {
                 if (!droneStationLocation) return true; 
                 Vector3 currentPosXZ = new Vector3(transform.position.x, 0, transform.position.z);
@@ -374,7 +369,6 @@ namespace JWK.Scripts.Drone
             _currentTargetPosition = finalApproachPoint;
             currentMissionState = DroneMissionState.ReturningToStation; 
 
-            // 최종 접근 지점에 도착할 때까지 대기
             yield return new WaitUntil(() => {
                 Vector3 currentPosXZ = new Vector3(transform.position.x, 0, transform.position.z);
                 Vector3 approachPointXZ = new Vector3(finalApproachPoint.x, 0, finalApproachPoint.z);
@@ -383,23 +377,35 @@ namespace JWK.Scripts.Drone
             Debug.Log("착륙 위치 상공 도착. 방향 정렬 시작.");
 
             currentMissionState = DroneMissionState.HoldingPosition; 
-            
             _smoothedLookDirection = _takeoffRotation * Vector3.forward;
 
             // 회전이 완료될 때까지 대기
             yield return new WaitUntil(() => Quaternion.Angle(transform.rotation, _takeoffRotation) < 1.0f);
-            Debug.Log("방향 정렬 완료. 착륙을 시작합니다.");
+            Debug.Log("방향 정렬 완료. 착륙 하강을 시작합니다.");
 
             // --- 5. 착륙 ---
-            if (roofManager) yield return roofManager.Open();
-
             currentMissionState = DroneMissionState.Landing;
             _targetAltitudeAbs = _takeoffPosition.y;
 
-            yield return new WaitUntil(() => currentMissionState == DroneMissionState.IdleAtStation);
-            Debug.Log("착륙 완료. 지붕을 닫습니다.");
+            // ====================================================================================
+            // [수정] 하강을 시작하고, 설정된 시간(N초) 후에 지붕을 엽니다.
+            // 이렇게 하면 드론이 어느 정도 내려와서 카메라에 가까워졌을 때 지붕이 열리는 것을 볼 수 있습니다.
+            yield return new WaitForSeconds(roofOpenDelayOnLanding);
 
+            if (roofManager)
+            {
+                Debug.Log("지붕 개방을 시작합니다.");
+                yield return roofManager.Open(); // 지붕이 완전히 열릴 때까지 기다립니다.
+            }
+            // ====================================================================================
+
+            // 착륙 완료 대기
+            yield return new WaitUntil(() => currentMissionState == DroneMissionState.IdleAtStation);
+            
+            Debug.Log("착륙 완료. 잠시 후 지붕을 닫습니다.");
+            yield return new WaitForSeconds(roofCloseDelay);
             if (roofManager) yield return roofManager.Close();
+            
             Debug.Log("임무 완전 종료. 스테이션에 안전하게 격납되었습니다.");
         }
 
@@ -638,15 +644,11 @@ namespace JWK.Scripts.Drone
             _rb.AddForce(Vector3.up * Mathf.Clamp(totalVertForce, 0.0f, hoverForce * maxForceMultiplier), ForceMode.Acceleration);
         }
 
-        //====================================================================================
-        // [수정] 착륙 시 수직 하강과 동시에 수평 위치/회전을 부드럽게 보정하는 새 로직
         private void ApplyLandingForce()
         {
-            // 1. 수직 하강 제어
             if (CurrentAltitudeAbs > _targetAltitudeAbs + 0.05f)
             {
                 float descentRate = landingDescentRate;
-                // 지면에 매우 가까워지면 하강 속도를 절반으로 줄여 부드럽게 착지
                 if (CurrentAltitudeAbs < _targetAltitudeAbs + 1.0f)
                 {
                     descentRate *= 0.5f;
@@ -656,35 +658,29 @@ namespace JWK.Scripts.Drone
                 _rb.AddForce(Vector3.up * upwardThrust, ForceMode.Acceleration);
             }
 
-            // 2. 수평 위치 보정 (이륙했던 XZ 좌표로 부드럽게 이동)
             Vector3 targetPosXZ = new Vector3(_takeoffPosition.x, 0, _takeoffPosition.z);
             Vector3 currentPosXZ = new Vector3(transform.position.x, 0, transform.position.z);
             Vector3 positionError = targetPosXZ - currentPosXZ;
             
-            // PD 제어기 원리를 이용한 보정 힘 계산
             Vector3 correctiveForce = positionError * landingCorrectionForce;
             
             Vector3 horizontalVelocity = _rb.linearVelocity;
             horizontalVelocity.y = 0;
             
-            // 오버슈팅(목표를 지나치는 현상)을 막기 위해 현재 속도의 반대 방향으로 저항(Damping)을 줌
             correctiveForce -= horizontalVelocity * landingCorrectionDamping;
             
             _rb.AddForce(new Vector3(correctiveForce.x, 0, correctiveForce.z), ForceMode.Acceleration);
 
-            // 3. 회전 보정 (이륙 시의 방향으로 부드럽게 회전)
             Quaternion targetRotation = _takeoffRotation;
             float targetAngleY = targetRotation.eulerAngles.y;
             float angleErrorY = Mathf.DeltaAngle(_rb.rotation.eulerAngles.y, targetAngleY);
-            float pTorque = angleErrorY * Mathf.Deg2Rad * kpRotation; // 기존 회전 제어 변수 재사용
-            float dTorque = -_rb.angularVelocity.y * kdRotation; // 기존 회전 제어 변수 재사용
+            float pTorque = angleErrorY * Mathf.Deg2Rad * kpRotation;
+            float dTorque = -_rb.angularVelocity.y * kdRotation;
             _rb.AddTorque(Vector3.up * Mathf.Clamp(pTorque + dTorque, -maxRotationTorque, maxRotationTorque), ForceMode.Acceleration);
         }
-        //====================================================================================
 
         private void ApplyHorizontalAndRotationalForces()
         {
-            // 수평/회전 제어가 필요 없는 상태들
             if (currentMissionState == DroneMissionState.IdleAtStation ||
                 currentMissionState == DroneMissionState.Landing ||
                 currentMissionState == DroneMissionState.TakingOff)
@@ -693,7 +689,6 @@ namespace JWK.Scripts.Drone
                 return;
             }
             
-            // 임무 수행 중에는 제자리에서 호버링만 함
             if (currentMissionState == DroneMissionState.PerformingAction)
             {
                 ApplyHorizontalDamping();
@@ -701,10 +696,8 @@ namespace JWK.Scripts.Drone
                 return;
             }
 
-            // HoldingPosition이 아닐 때만 수평 이동 로직을 실행
             if (currentMissionState != DroneMissionState.HoldingPosition)
             {
-                // --- 이동 로직 ---
                 Vector3 currentPosXZ = transform.position;
                 currentPosXZ.y = 0;
                 Vector3 targetPosXZ = _currentTargetPosition;
@@ -712,7 +705,6 @@ namespace JWK.Scripts.Drone
                 Vector3 directionToTarget = (targetPosXZ - currentPosXZ);
                 float distanceToTarget = directionToTarget.magnitude;
 
-                // 목표 지점이 매우 가까우면 현재 방향을 유지하도록 하여 급격한 회전을 방지
                 Vector3 targetLookDirection = (distanceToTarget > 0.01f) ? directionToTarget.normalized : transform.forward;
                 _smoothedLookDirection = Vector3.Slerp(_smoothedLookDirection, targetLookDirection, Time.fixedDeltaTime / rotationSmoothTime);
                 
@@ -740,14 +732,12 @@ namespace JWK.Scripts.Drone
             }
             else
             {
-                // HoldingPosition일 때는 수평 이동을 멈춤 (회전은 방해하지 않음)
                 Vector3 horizontalVel = _rb.linearVelocity;
                 horizontalVel.y = 0;
                 _rb.AddForce(-horizontalVel, ForceMode.VelocityChange);
                 _currentSmoothedVelocity = Vector3.zero;
             }
             
-            // --- 회전 로직 (이동 상태와 HoldingPosition 상태 모두에서 실행됨) ---
             Quaternion targetRotation = Quaternion.LookRotation(_smoothedLookDirection);
             float targetAngleY = targetRotation.eulerAngles.y;
             float angleErrorY = Mathf.DeltaAngle(_rb.rotation.eulerAngles.y, targetAngleY);
@@ -845,151 +835,151 @@ namespace JWK.Scripts.Drone
 
         #endregion
 
-        #region 웹소켓 통신 (WebSocket Communication)
-        
-        private void ConnectWebSocket()
-        {
-            try
-            {
-                _ws = new WebSocket(ServerUrl);
-                _ws.OnOpen += (sender, e) => { 
-                    Debug.Log("[Unity] Main Drone WebSocket Connected!");
-                    _ws.Send("40"); 
-                };
-            
-                _ws.OnMessage += OnWebSocketMessage;
-                _ws.OnError += (sender, e) => Debug.LogError($"[Unity] WebSocket Error: {e.Message}");
-                _ws.OnClose += (sender, e) => 
-                {
-                    if (this != null && gameObject.activeInHierarchy && !_webSocketCts.IsCancellationRequested)
-                    {
-                        Debug.LogWarning($"[Unity] WebSocket Closed. Code: {e.Code}, Reason: {e.Reason}. Reconnecting...");
-                        StartCoroutine(ReconnectWebSocket());
-                    }
-                };
-                _ws.Connect();
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Unity] WebSocket connection failed: {ex.Message}");
-            }
-        }
-
-        private IEnumerator ReconnectWebSocket()
-        {
-            yield return _reconnectWait;
-            if (_ws == null || !_ws.IsAlive)
-            {
-                ConnectWebSocket();
-            }
-        }
-    
-        private IEnumerator SendDroneDataRoutine()
-        {
-            while (true)
-            {
-                yield return _sendDataWait;
-            
-                if (_ws != null && _ws.IsAlive)
-                {
-                    _dataToSend.position.x = CurrentPositionAbs.x;
-                    _dataToSend.position.y = CurrentPositionAbs.y;
-                    _dataToSend.position.z = CurrentPositionAbs.z;
-                    _dataToSend.altitude = CurrentAltitudeAbs;
-                    _dataToSend.battery = batteryLevel;
-                    _dataToSend.mission_state = _missionStateStrings[(int)currentMissionState];
-                    _dataToSend.payload_type = _payloadTypeStrings[(int)currentPayload];
-                    _dataToSend.bomb_load = _currentBombLoad;
-                    
-                    string droneDataJson = JsonUtility.ToJson(_dataToSend);
-                    
-                    _socketMessageBuilder.Clear();
-                    _socketMessageBuilder.Append("42[\"unity_main_drone_data\",");
-                    _socketMessageBuilder.Append(droneDataJson);
-                    _socketMessageBuilder.Append("]");
-                    
-                    _ws.Send(_socketMessageBuilder.ToString());
-                }
-            }
-        }
-
-        private class SocketMessageJob
-        {
-            public DroneController Controller;
-            public string JsonString;
-
-            public void Execute()
-            {
-                try
-                {
-                    JSONNode node = JSON.Parse(JsonString);
-                    string eventName = node[0].Value;
-                    JSONNode eventData = node[1];
-
-                    if (eventName == "change_payload_command")
-                    {
-                        Controller.HandleChangePayloadCommand(eventData);
-                    }
-                    else if (eventName == "force_return_command")
-                    {
-                        Controller.HandleForceReturnCommand();
-                    }
-                    else if (eventName == "emergency_stop_command")
-                    {
-                        Controller.HandleEmergencyStopCommand();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"[Unity] Error parsing JSON: {ex.Message} - Data: {JsonString}");
-                }
-            }
-        }
-
-        private void OnWebSocketMessage(object sender, MessageEventArgs e)
-        {
-            if (e.Data.StartsWith("42"))
-            {
-                var job = new SocketMessageJob
-                {
-                    Controller = this,
-                    JsonString = e.Data.Substring(2)
-                };
-                UnityMainThreadDispatcher.Instance.Enqueue(job.Execute);
-            }
-            else if (e.Data == "2")
-            { 
-                _ws.Send("3");
-            }
-        }
-        
-        private void HandleChangePayloadCommand(JSONNode eventData)
-        {
-            if (currentMissionState == DroneMissionState.IdleAtStation)
-            {
-                if (Enum.TryParse(eventData["payload"].Value, out PayloadType newPayload))
-                {
-                    currentPayload = newPayload;
-                    Debug.Log($"[Mission] Payload changed to: {currentPayload}");
-                }
-            }
-        }
-
-        private void HandleForceReturnCommand()
-        {
-            if (droneStationLocation)
-            {
-                _currentTargetPosition = droneStationLocation.position;
-                currentMissionState = DroneMissionState.EmergencyReturn;
-                if (_actionCoroutine != null) StopCoroutine(_actionCoroutine);
-            }
-        }
-
-        private void HandleEmergencyStopCommand()
-        {
-            currentMissionState = DroneMissionState.HoldingPosition;
-            if (_actionCoroutine != null) StopCoroutine(_actionCoroutine);
-        }
-        #endregion
+        // #region 웹소켓 통신 (WebSocket Communication)
+        //
+        // private void ConnectWebSocket()
+        // {
+        //     try
+        //     {
+        //         _ws = new WebSocket(ServerUrl);
+        //         _ws.OnOpen += (sender, e) => { 
+        //             Debug.Log("[Unity] Main Drone WebSocket Connected!");
+        //             _ws.Send("40"); 
+        //         };
+        //     
+        //         _ws.OnMessage += OnWebSocketMessage;
+        //         _ws.OnError += (sender, e) => Debug.LogError($"[Unity] WebSocket Error: {e.Message}");
+        //         _ws.OnClose += (sender, e) => 
+        //         {
+        //             if (this != null && gameObject.activeInHierarchy && !_webSocketCts.IsCancellationRequested)
+        //             {
+        //                 Debug.LogWarning($"[Unity] WebSocket Closed. Code: {e.Code}, Reason: {e.Reason}. Reconnecting...");
+        //                 StartCoroutine(ReconnectWebSocket());
+        //             }
+        //         };
+        //         _ws.Connect();
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         Debug.LogError($"[Unity] WebSocket connection failed: {ex.Message}");
+        //     }
+        // }
+        //
+        // private IEnumerator ReconnectWebSocket()
+        // {
+        //     yield return _reconnectWait;
+        //     if (_ws == null || !_ws.IsAlive)
+        //     {
+        //         ConnectWebSocket();
+        //     }
+        // }
+        //
+        // private IEnumerator SendDroneDataRoutine()
+        // {
+        //     while (true)
+        //     {
+        //         yield return _sendDataWait;
+        //     
+        //         if (_ws != null && _ws.IsAlive)
+        //         {
+        //             _dataToSend.position.x = CurrentPositionAbs.x;
+        //             _dataToSend.position.y = CurrentPositionAbs.y;
+        //             _dataToSend.position.z = CurrentPositionAbs.z;
+        //             _dataToSend.altitude = CurrentAltitudeAbs;
+        //             _dataToSend.battery = batteryLevel;
+        //             _dataToSend.mission_state = _missionStateStrings[(int)currentMissionState];
+        //             _dataToSend.payload_type = _payloadTypeStrings[(int)currentPayload];
+        //             _dataToSend.bomb_load = _currentBombLoad;
+        //             
+        //             string droneDataJson = JsonUtility.ToJson(_dataToSend);
+        //             
+        //             _socketMessageBuilder.Clear();
+        //             _socketMessageBuilder.Append("42[\"unity_main_drone_data\",");
+        //             _socketMessageBuilder.Append(droneDataJson);
+        //             _socketMessageBuilder.Append("]");
+        //             
+        //             _ws.Send(_socketMessageBuilder.ToString());
+        //         }
+        //     }
+        // }
+        //
+        // private class SocketMessageJob
+        // {
+        //     public DroneController Controller;
+        //     public string JsonString;
+        //
+        //     public void Execute()
+        //     {
+        //         try
+        //         {
+        //             JSONNode node = JSON.Parse(JsonString);
+        //             string eventName = node[0].Value;
+        //             JSONNode eventData = node[1];
+        //
+        //             if (eventName == "change_payload_command")
+        //             {
+        //                 Controller.HandleChangePayloadCommand(eventData);
+        //             }
+        //             else if (eventName == "force_return_command")
+        //             {
+        //                 Controller.HandleForceReturnCommand();
+        //             }
+        //             else if (eventName == "emergency_stop_command")
+        //             {
+        //                 Controller.HandleEmergencyStopCommand();
+        //             }
+        //         }
+        //         catch (Exception ex)
+        //         {
+        //             Debug.LogError($"[Unity] Error parsing JSON: {ex.Message} - Data: {JsonString}");
+        //         }
+        //     }
+        // }
+        //
+        // private void OnWebSocketMessage(object sender, MessageEventArgs e)
+        // {
+        //     if (e.Data.StartsWith("42"))
+        //     {
+        //         var job = new SocketMessageJob
+        //         {
+        //             Controller = this,
+        //             JsonString = e.Data.Substring(2)
+        //         };
+        //         UnityMainThreadDispatcher.Instance.Enqueue(job.Execute);
+        //     }
+        //     else if (e.Data == "2")
+        //     { 
+        //         _ws.Send("3");
+        //     }
+        // }
+        //
+        // private void HandleChangePayloadCommand(JSONNode eventData)
+        // {
+        //     if (currentMissionState == DroneMissionState.IdleAtStation)
+        //     {
+        //         if (Enum.TryParse(eventData["payload"].Value, out PayloadType newPayload))
+        //         {
+        //             currentPayload = newPayload;
+        //             Debug.Log($"[Mission] Payload changed to: {currentPayload}");
+        //         }
+        //     }
+        // }
+        //
+        // private void HandleForceReturnCommand()
+        // {
+        //     if (droneStationLocation)
+        //     {
+        //         _currentTargetPosition = droneStationLocation.position;
+        //         currentMissionState = DroneMissionState.EmergencyReturn;
+        //         if (_actionCoroutine != null) StopCoroutine(_actionCoroutine);
+        //     }
+        // }
+        //
+        // private void HandleEmergencyStopCommand()
+        // {
+        //     currentMissionState = DroneMissionState.HoldingPosition;
+        //     if (_actionCoroutine != null) StopCoroutine(_actionCoroutine);
+        // }
+        // #endregion
     }
 }

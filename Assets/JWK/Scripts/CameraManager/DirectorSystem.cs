@@ -8,6 +8,7 @@ namespace JWK.Scripts
     /// <summary>
     /// 모든 카메라 워크를 총괄하는 시네마틱 감독 시스템입니다.
     /// 드론의 상태에 따라 역동적인 카메라 샷을 연출합니다.
+    /// LateUpdate를 사용하여 물리 기반 객체 추적 시 발생하는 떨림 현상을 방지합니다.
     /// </summary>
     public class DirectorSystem : MonoBehaviour
     {
@@ -16,13 +17,28 @@ namespace JWK.Scripts
         public Camera ImpactCamera;
 
         [Header("카메라 워크 설정")]
-        [SerializeField] private float _smoothTime = 1.2f;
+        [Tooltip("드론을 따라다닐 때의 카메라 오프셋입니다. 월드 좌표 기준입니다.")]
+        [SerializeField] private Vector3 _followOffset = new Vector3(0, 5f, -10f);
+        [Tooltip("카메라가 드론을 바라볼 때의 수직 오프셋입니다.")]
+        [SerializeField] private Vector3 _lookAtOffset = new Vector3(0, 1.5f, 0);
+        [Tooltip("카메라 위치 이동의 부드러움입니다. 낮을수록 빠르게 반응합니다.")]
+        [SerializeField] private float _positionSmoothTime = 0.5f;
+        [Tooltip("카메라 회전의 부드러움입니다. 낮을수록 빠르게 반응합니다.")]
+        [SerializeField] private float _rotationSmoothTime = 0.3f;
+        [Tooltip("오르빗 샷의 회전 속도입니다.")]
+        [SerializeField] private float _orbitSpeed = 10f;
 
-        private Coroutine _currentCameraWork;
+        // ====================================================================================
+        // [수정] 코루틴 기반에서 LateUpdate 기반의 상태 머신으로 변경
+        private enum CameraMode { Follow, Orbit, Idle }
+        private CameraMode _currentMode = CameraMode.Idle;
+        
+        private Vector3 _orbitTargetPosition;
+        private Vector3 _cameraVelocity = Vector3.zero;
+        // ====================================================================================
 
         private void OnEnable()
         {
-            // 드론의 상태 변경 이벤트를 구독합니다.
             DroneCameraEvents.OnMissionStart += HandleMissionStart;
             DroneCameraEvents.OnArrivedAtDropZone += HandleArrivedAtDropZone;
             DroneCameraEvents.OnBombImpact += HandleBombImpact;
@@ -31,7 +47,6 @@ namespace JWK.Scripts
 
         private void OnDisable()
         {
-            // 이벤트 구독을 해제합니다.
             DroneCameraEvents.OnMissionStart -= HandleMissionStart;
             DroneCameraEvents.OnArrivedAtDropZone -= HandleArrivedAtDropZone;
             DroneCameraEvents.OnBombImpact -= HandleBombImpact;
@@ -44,23 +59,45 @@ namespace JWK.Scripts
             {
                 ImpactCamera.gameObject.SetActive(false);
             }
-            // 시작 시 기본 추적 카메라를 실행합니다.
-            HandleReturnToStation();
-        }
-
-        // 임무 시작: 웨이포인트 카메라 워크 시작
-        private void HandleMissionStart(Transform startPoint, Transform fireTarget)
-        {
-            SwitchCameraWork(WaypointTransition(startPoint, fireTarget));
-        }
-
-        // 목표 도착: 투하 지점 오르빗 카메라 워크 시작
-        private void HandleArrivedAtDropZone(Transform fireTarget)
-        {
-            SwitchCameraWork(OrbitDropZone(fireTarget));
+            // 시작 시 기본 추적 카메라 모드로 설정
+            _currentMode = CameraMode.Follow;
         }
         
-        // 소화탄 충돌: 임팩트 카메라 활성화
+        // ====================================================================================
+        // [수정] 모든 카메라 워크를 LateUpdate에서 처리하도록 로직 변경
+        private void LateUpdate()
+        {
+            if (DroneTarget == null) return;
+
+            switch (_currentMode)
+            {
+                case CameraMode.Follow:
+                    UpdateFollowCamera();
+                    break;
+                case CameraMode.Orbit:
+                    UpdateOrbitCamera();
+                    break;
+                case CameraMode.Idle:
+                    // 유휴 상태에서는 아무것도 하지 않음
+                    break;
+            }
+        }
+        // ====================================================================================
+
+        // 임무 시작: 추적 모드로 변경
+        private void HandleMissionStart(Transform startPoint, Transform fireTarget)
+        {
+            _currentMode = CameraMode.Follow;
+        }
+
+        // 목표 도착: 오르빗 모드로 변경
+        private void HandleArrivedAtDropZone(Vector3 fireTargetPosition)
+        {
+            _orbitTargetPosition = fireTargetPosition;
+            _currentMode = CameraMode.Orbit;
+        }
+        
+        // 소화탄 충돌: 임팩트 카메라 활성화 (코루틴 유지)
         private void HandleBombImpact(Vector3 impactPosition)
         {
             if (ImpactCamera != null)
@@ -69,103 +106,60 @@ namespace JWK.Scripts
             }
         }
 
-        // 기지 복귀: 기본 추적 카메라 워크 시작
+        // 기지 복귀: 추적 모드로 변경
         private void HandleReturnToStation()
         {
-            SwitchCameraWork(FollowDrone());
+            _currentMode = CameraMode.Follow;
         }
 
-        // 현재 진행 중인 카메라 워크를 중단하고 새로운 워크로 전환합니다.
-        private void SwitchCameraWork(IEnumerator newCameraWork)
+        // --- LateUpdate에서 호출될 카메라 워크 함수들 ---
+
+        /// <summary>
+        /// 드론을 부드럽게 따라가는 카메라 로직
+        /// </summary>
+        private void UpdateFollowCamera()
         {
-            if (_currentCameraWork != null)
-            {
-                StopCoroutine(_currentCameraWork);
-            }
-            _currentCameraWork = StartCoroutine(newCameraWork);
+            Vector3 desiredPosition = DroneTarget.position + _followOffset;
+            transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref _cameraVelocity, _positionSmoothTime);
+            
+            Vector3 lookAtPoint = DroneTarget.position + _lookAtOffset;
+            Quaternion targetRotation = Quaternion.LookRotation(lookAtPoint - transform.position);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime / _rotationSmoothTime);
         }
 
-        // --- 카메라 워크 코루틴들 ---
-
-        // 1. 웨이포인트 통과 샷
-        private IEnumerator WaypointTransition(Transform start, Transform end)
+        /// <summary>
+        /// 목표 지점을 중심으로 회전하는 오르빗 카메라 로직
+        /// </summary>
+        private void UpdateOrbitCamera()
         {
-            Vector3 startPos = start.position;
-            Vector3 endPos = end.position;
-            float distance = Vector3.Distance(startPos, endPos);
-
-            // 웨이포인트 생성
-            List<Vector3> waypoints = new List<Vector3>();
-            Vector3 direction = (endPos - startPos).normalized;
-            Vector3 side = Vector3.Cross(direction, Vector3.up).normalized * (distance / 8f); // 경로 측면으로 벗어나는 정도
-
-            waypoints.Add(transform.position); // 현재 카메라 위치에서 시작
-            waypoints.Add(startPos + direction * (distance * 0.2f) + side);
-            if (distance > 50f) // 거리가 멀면 중간 포인트 추가
-            {
-                waypoints.Add(startPos + direction * (distance * 0.5f) - side * 1.2f);
-            }
-            waypoints.Add(endPos - direction * 20f + new Vector3(0, 10f, 0)); // 목표 지점 근처 상공
-
-            // 웨이포인트를 따라 부드럽게 이동
-            foreach (var point in waypoints)
-            {
-                float journey = 0f;
-                float duration = Vector3.Distance(transform.position, point) / 30f; // 이동 속도
-                duration = Mathf.Max(duration, 1.5f); // 최소 이동 시간
-
-                Vector3 startPoint = transform.position;
-                Quaternion startRotation = transform.rotation;
-
-                while (journey < duration)
-                {
-                    journey += Time.deltaTime;
-                    float percent = Mathf.SmoothStep(0, 1, journey / duration);
-                    transform.position = Vector3.Lerp(startPoint, point, percent);
-                    Quaternion targetRotation = Quaternion.LookRotation(DroneTarget.position - transform.position);
-                    transform.rotation = Quaternion.Slerp(startRotation, targetRotation, percent);
-                    yield return null;
-                }
-            }
+            transform.RotateAround(_orbitTargetPosition, Vector3.up, _orbitSpeed * Time.deltaTime);
+            
+            Vector3 lookAtPoint = DroneTarget.position + _lookAtOffset;
+            Quaternion targetRotation = Quaternion.LookRotation(lookAtPoint - transform.position);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime / _rotationSmoothTime);
         }
 
-        // 2. 투하 지점 오르빗 샷
-        private IEnumerator OrbitDropZone(Transform fireTarget)
-        {
-            float orbitSpeed = 10f;
-            while (true)
-            {
-                transform.RotateAround(fireTarget.position, Vector3.up, orbitSpeed * Time.deltaTime);
-                Quaternion targetRotation = Quaternion.LookRotation(DroneTarget.position - transform.position);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime / _smoothTime);
-                yield return null;
-            }
-        }
-
-        // 3. 기본 추적 샷
-        private IEnumerator FollowDrone()
-        {
-            Vector3 offset = new Vector3(0, 7f, -15f);
-            while (true)
-            {
-                Vector3 desiredPosition = DroneTarget.position + offset;
-                transform.position = Vector3.Lerp(transform.position, desiredPosition, Time.deltaTime / _smoothTime);
-                Quaternion targetRotation = Quaternion.LookRotation(DroneTarget.position - transform.position);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime / _smoothTime);
-                yield return null;
-            }
-        }
-
-        // 4. 임팩트 샷 (서브 카메라)
+        /// <summary>
+        /// 임팩트 순간을 보여주는 서브 카메라 활성화 로직 (코루틴)
+        /// </summary>
         private IEnumerator ShowImpact(Vector3 position)
         {
+            if (ImpactCamera == null) yield break;
+            
+            // 임팩트 샷을 보여주는 동안 메인 카메라의 움직임을 멈춤
+            var previousMode = _currentMode;
+            _currentMode = CameraMode.Idle;
+
             ImpactCamera.gameObject.SetActive(true);
             ImpactCamera.transform.position = position + new Vector3(0, 3f, -5f);
             ImpactCamera.transform.LookAt(position);
             
-            yield return new WaitForSeconds(2.0f); // 2초간 보여줌
+            yield return new WaitForSeconds(4.0f);
             
             ImpactCamera.gameObject.SetActive(false);
+
+            // 임팩트 샷이 끝나면 이전 카메라 모드로 복귀
+            _currentMode = previousMode;
         }
     }
 }
