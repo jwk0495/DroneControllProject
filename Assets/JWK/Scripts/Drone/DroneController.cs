@@ -161,8 +161,8 @@ namespace JWK.Scripts.Drone
             _dataToSend = new DroneStatusData(Vector3.zero, 0, 0, "", "", 0);
             _webSocketCts = new CancellationTokenSource();
 
-            ConnectWebSocket();
-            StartCoroutine(SendDroneDataRoutine());
+            // ConnectWebSocket();
+            // StartCoroutine(SendDroneDataRoutine());
             StartCoroutine(TerrainCheckRoutine());
             
             PerformInitialGroundCheckAndSetAltitude();
@@ -835,151 +835,151 @@ namespace JWK.Scripts.Drone
 
         #endregion
 
-        #region 웹소켓 통신 (WebSocket Communication)
-        
-        private void ConnectWebSocket()
-        {
-            try
-            {
-                _ws = new WebSocket(ServerUrl);
-                _ws.OnOpen += (sender, e) => { 
-                    Debug.Log("[Unity] Main Drone WebSocket Connected!");
-                    _ws.Send("40"); 
-                };
-            
-                _ws.OnMessage += OnWebSocketMessage;
-                _ws.OnError += (sender, e) => Debug.LogError($"[Unity] WebSocket Error: {e.Message}");
-                _ws.OnClose += (sender, e) => 
-                {
-                    if (this != null && gameObject.activeInHierarchy && !_webSocketCts.IsCancellationRequested)
-                    {
-                        Debug.LogWarning($"[Unity] WebSocket Closed. Code: {e.Code}, Reason: {e.Reason}. Reconnecting...");
-                        StartCoroutine(ReconnectWebSocket());
-                    }
-                };
-                _ws.Connect();
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Unity] WebSocket connection failed: {ex.Message}");
-            }
-        }
-
-        private IEnumerator ReconnectWebSocket()
-        {
-            yield return _reconnectWait;
-            if (_ws == null || !_ws.IsAlive)
-            {
-                ConnectWebSocket();
-            }
-        }
-    
-        private IEnumerator SendDroneDataRoutine()
-        {
-            while (true)
-            {
-                yield return _sendDataWait;
-            
-                if (_ws != null && _ws.IsAlive)
-                {
-                    _dataToSend.position.x = CurrentPositionAbs.x;
-                    _dataToSend.position.y = CurrentPositionAbs.y;
-                    _dataToSend.position.z = CurrentPositionAbs.z;
-                    _dataToSend.altitude = CurrentAltitudeAbs;
-                    _dataToSend.battery = batteryLevel;
-                    _dataToSend.mission_state = _missionStateStrings[(int)currentMissionState];
-                    _dataToSend.payload_type = _payloadTypeStrings[(int)currentPayload];
-                    _dataToSend.bomb_load = _currentBombLoad;
-                    
-                    string droneDataJson = JsonUtility.ToJson(_dataToSend);
-                    
-                    _socketMessageBuilder.Clear();
-                    _socketMessageBuilder.Append("42[\"unity_main_drone_data\",");
-                    _socketMessageBuilder.Append(droneDataJson);
-                    _socketMessageBuilder.Append("]");
-                    
-                    _ws.Send(_socketMessageBuilder.ToString());
-                }
-            }
-        }
-
-        private class SocketMessageJob
-        {
-            public DroneController Controller;
-            public string JsonString;
-
-            public void Execute()
-            {
-                try
-                {
-                    JSONNode node = JSON.Parse(JsonString);
-                    string eventName = node[0].Value;
-                    JSONNode eventData = node[1];
-
-                    if (eventName == "change_payload_command")
-                    {
-                        Controller.HandleChangePayloadCommand(eventData);
-                    }
-                    else if (eventName == "force_return_command")
-                    {
-                        Controller.HandleForceReturnCommand();
-                    }
-                    else if (eventName == "emergency_stop_command")
-                    {
-                        Controller.HandleEmergencyStopCommand();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"[Unity] Error parsing JSON: {ex.Message} - Data: {JsonString}");
-                }
-            }
-        }
-
-        private void OnWebSocketMessage(object sender, MessageEventArgs e)
-        {
-            if (e.Data.StartsWith("42"))
-            {
-                var job = new SocketMessageJob
-                {
-                    Controller = this,
-                    JsonString = e.Data.Substring(2)
-                };
-                UnityMainThreadDispatcher.Instance.Enqueue(job.Execute);
-            }
-            else if (e.Data == "2")
-            { 
-                _ws.Send("3");
-            }
-        }
-        
-        private void HandleChangePayloadCommand(JSONNode eventData)
-        {
-            if (currentMissionState == DroneMissionState.IdleAtStation)
-            {
-                if (Enum.TryParse(eventData["payload"].Value, out PayloadType newPayload))
-                {
-                    currentPayload = newPayload;
-                    Debug.Log($"[Mission] Payload changed to: {currentPayload}");
-                }
-            }
-        }
-
-        private void HandleForceReturnCommand()
-        {
-            if (droneStationLocation)
-            {
-                _currentTargetPosition = droneStationLocation.position;
-                currentMissionState = DroneMissionState.EmergencyReturn;
-                if (_actionCoroutine != null) StopCoroutine(_actionCoroutine);
-            }
-        }
-
-        private void HandleEmergencyStopCommand()
-        {
-            currentMissionState = DroneMissionState.HoldingPosition;
-            if (_actionCoroutine != null) StopCoroutine(_actionCoroutine);
-        }
-        #endregion
+        // #region 웹소켓 통신 (WebSocket Communication)
+        //
+        // private void ConnectWebSocket()
+        // {
+        //     try
+        //     {
+        //         _ws = new WebSocket(ServerUrl);
+        //         _ws.OnOpen += (sender, e) => { 
+        //             Debug.Log("[Unity] Main Drone WebSocket Connected!");
+        //             _ws.Send("40"); 
+        //         };
+        //     
+        //         _ws.OnMessage += OnWebSocketMessage;
+        //         _ws.OnError += (sender, e) => Debug.LogError($"[Unity] WebSocket Error: {e.Message}");
+        //         _ws.OnClose += (sender, e) => 
+        //         {
+        //             if (this != null && gameObject.activeInHierarchy && !_webSocketCts.IsCancellationRequested)
+        //             {
+        //                 Debug.LogWarning($"[Unity] WebSocket Closed. Code: {e.Code}, Reason: {e.Reason}. Reconnecting...");
+        //                 StartCoroutine(ReconnectWebSocket());
+        //             }
+        //         };
+        //         _ws.Connect();
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         Debug.LogError($"[Unity] WebSocket connection failed: {ex.Message}");
+        //     }
+        // }
+        //
+        // private IEnumerator ReconnectWebSocket()
+        // {
+        //     yield return _reconnectWait;
+        //     if (_ws == null || !_ws.IsAlive)
+        //     {
+        //         ConnectWebSocket();
+        //     }
+        // }
+        //
+        // private IEnumerator SendDroneDataRoutine()
+        // {
+        //     while (true)
+        //     {
+        //         yield return _sendDataWait;
+        //     
+        //         if (_ws != null && _ws.IsAlive)
+        //         {
+        //             _dataToSend.position.x = CurrentPositionAbs.x;
+        //             _dataToSend.position.y = CurrentPositionAbs.y;
+        //             _dataToSend.position.z = CurrentPositionAbs.z;
+        //             _dataToSend.altitude = CurrentAltitudeAbs;
+        //             _dataToSend.battery = batteryLevel;
+        //             _dataToSend.mission_state = _missionStateStrings[(int)currentMissionState];
+        //             _dataToSend.payload_type = _payloadTypeStrings[(int)currentPayload];
+        //             _dataToSend.bomb_load = _currentBombLoad;
+        //             
+        //             string droneDataJson = JsonUtility.ToJson(_dataToSend);
+        //             
+        //             _socketMessageBuilder.Clear();
+        //             _socketMessageBuilder.Append("42[\"unity_main_drone_data\",");
+        //             _socketMessageBuilder.Append(droneDataJson);
+        //             _socketMessageBuilder.Append("]");
+        //             
+        //             _ws.Send(_socketMessageBuilder.ToString());
+        //         }
+        //     }
+        // }
+        //
+        // private class SocketMessageJob
+        // {
+        //     public DroneController Controller;
+        //     public string JsonString;
+        //
+        //     public void Execute()
+        //     {
+        //         try
+        //         {
+        //             JSONNode node = JSON.Parse(JsonString);
+        //             string eventName = node[0].Value;
+        //             JSONNode eventData = node[1];
+        //
+        //             if (eventName == "change_payload_command")
+        //             {
+        //                 Controller.HandleChangePayloadCommand(eventData);
+        //             }
+        //             else if (eventName == "force_return_command")
+        //             {
+        //                 Controller.HandleForceReturnCommand();
+        //             }
+        //             else if (eventName == "emergency_stop_command")
+        //             {
+        //                 Controller.HandleEmergencyStopCommand();
+        //             }
+        //         }
+        //         catch (Exception ex)
+        //         {
+        //             Debug.LogError($"[Unity] Error parsing JSON: {ex.Message} - Data: {JsonString}");
+        //         }
+        //     }
+        // }
+        //
+        // private void OnWebSocketMessage(object sender, MessageEventArgs e)
+        // {
+        //     if (e.Data.StartsWith("42"))
+        //     {
+        //         var job = new SocketMessageJob
+        //         {
+        //             Controller = this,
+        //             JsonString = e.Data.Substring(2)
+        //         };
+        //         UnityMainThreadDispatcher.Instance.Enqueue(job.Execute);
+        //     }
+        //     else if (e.Data == "2")
+        //     { 
+        //         _ws.Send("3");
+        //     }
+        // }
+        //
+        // private void HandleChangePayloadCommand(JSONNode eventData)
+        // {
+        //     if (currentMissionState == DroneMissionState.IdleAtStation)
+        //     {
+        //         if (Enum.TryParse(eventData["payload"].Value, out PayloadType newPayload))
+        //         {
+        //             currentPayload = newPayload;
+        //             Debug.Log($"[Mission] Payload changed to: {currentPayload}");
+        //         }
+        //     }
+        // }
+        //
+        // private void HandleForceReturnCommand()
+        // {
+        //     if (droneStationLocation)
+        //     {
+        //         _currentTargetPosition = droneStationLocation.position;
+        //         currentMissionState = DroneMissionState.EmergencyReturn;
+        //         if (_actionCoroutine != null) StopCoroutine(_actionCoroutine);
+        //     }
+        // }
+        //
+        // private void HandleEmergencyStopCommand()
+        // {
+        //     currentMissionState = DroneMissionState.HoldingPosition;
+        //     if (_actionCoroutine != null) StopCoroutine(_actionCoroutine);
+        // }
+        // #endregion
     }
 }
