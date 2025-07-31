@@ -136,7 +136,7 @@ namespace JWK.Scripts.DropSystem
             {
                 Vector3 bombPositionAfterRotation = bombToDrop.transform.position;
                 Vector3 offset = bombPositionAfterRotation - droneTransform.position;
-                Debug.Log($"<color=yellow>[투하 직전 오프셋 계산]</color> 드론-폭탄 간 최종 오프셋: {offset}");
+                // Debug.Log($"<color=yellow>[투하 직전 오프셋 계산]</color> 드론-폭탄 간 최종 오프셋: {offset}");
             }
             yield return _clearanceDelay;
         }

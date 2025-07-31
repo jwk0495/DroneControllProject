@@ -5,16 +5,15 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using JWK.Scripts.DropSystem;
-using JWK.Scripts.FireManager;
 using JWK.Scripts.CameraManager;
 using JWK.Scripts.Station;
+using JWK.Scripts.FireManager; // ★★★ LeveledFireController를 사용하기 위해 추가 ★★★
 
 namespace JWK.Scripts.Drone
 {
     [RequireComponent(typeof(Rigidbody))]
     public class DroneController : MonoBehaviour
     {
-        // ... (대부분의 변수와 함수는 그대로 유지됩니다) ...
         #region 변수 선언 (Fields and Properties)
 
         [Header("Firebase 연동")]
@@ -57,13 +56,9 @@ namespace JWK.Scripts.Drone
         [SerializeField] private float moveForce = 15.0f;
 
         [Header("모델 비주얼 설정")]
-        [Tooltip("기울일 드론의 비주얼 모델 Transform")]
         [SerializeField] private Transform droneModelTransform;
-        [Tooltip("최대 기울기 각도")]
         [SerializeField] private float maxTiltAngle = 15.0f;
-        [Tooltip("기울기 복원 시 스프링처럼 작용하는 힘의 강도입니다. 높을수록 더 빠르게 원래 각도로 돌아옵니다.")]
         [SerializeField] private float tiltSpringStiffness = 50f;
-        [Tooltip("기울기 스윙이 멈추는 정도입니다. 0에 가까우면 바이킹처럼 많이 흔들리고, 1에 가까우면 거의 흔들리지 않고 멈춥니다.")]
         [Range(0f, 1f)]
         [SerializeField] private float tiltDamping = 0.1f;
         private Quaternion _modelNeutralRotation;
@@ -71,15 +66,12 @@ namespace JWK.Scripts.Drone
         private Vector2 _visualTilt; 
         private Vector2 _tiltVelocity; 
 
-
         [Header("임무 설정")]
         [SerializeField] private Transform droneStationLocation;
         [SerializeField] private float missionCruisingAgl = 50.0f;
         [SerializeField] private float arrivalDistanceThreshold = 0.1f;
         [SerializeField] private float preActionStabilizationTime = 0.5f;
-        [Tooltip("폭탄 투하 후 다음 행동까지 대기하는 시간입니다.")]
         [SerializeField] private float postDropMoveDelay = 1.5f;
-        [Tooltip("프로펠러가 최대 속도에 도달한 후 실제 이륙까지 대기하는 시간입니다.")]
         [SerializeField] private float preTakeoffDelay = 1.5f;
         [SerializeField] private float retreatDistance = 10.0f;
         private float _arrivalDistanceThresholdSqr;
@@ -88,13 +80,14 @@ namespace JWK.Scripts.Drone
         private int _currentBombLoad;
         [SerializeField] private int totalBombs = 6;
         
+        // ★★★ [핵심 수정] 변수 타입을 Transform에서 LeveledFireController로 변경 ★★★
+        private LeveledFireController _activeFireController;
         private Vector3 _takeoffPosition;
         private Quaternion _takeoffRotation;
 
         [Header("고도 제어 (PD & AGL)")]
         [SerializeField] private float kpAltitude = 2.0f;
         [SerializeField] private float kdAltitude = 2.5f;
-        [Tooltip("목표 고도 변경 시 얼마나 부드럽게 도달할지 결정합니다. 낮을수록 부드러워집니다.")]
         [SerializeField] private float altitudeSmoothSpeed = 1.5f;
         [SerializeField] private float landingDescentRate = 0.4f;
         [SerializeField] private float terrainCheckDistance = 50.0f;
@@ -109,14 +102,10 @@ namespace JWK.Scripts.Drone
         [SerializeField] private float turnBeforeMoveAngleThreshold = 15.0f;
         [SerializeField] private float decelerationStartDistanceXZ = 15.0f;
         [SerializeField] private float maxRotationTorque = 15.0f;
-        [Tooltip("회전이 얼마나 부드럽게 될지 결정합니다. 값을 높이면 회전이 더 부드러워집니다.")]
         [SerializeField] private float rotationSmoothTime = 1.2f;
-        [Tooltip("속도 변경(가/감속)이 얼마나 부드럽게 될지 결정합니다. 값을 높이면 가감속이 더 부드러워집니다.")]
         [SerializeField] private float velocitySmoothTime = 1.2f;
         
-        [Tooltip("착륙 시 최종 위치를 보정하는 힘의 강도입니다.")]
         [SerializeField] private float landingCorrectionForce = 2.0f;
-        [Tooltip("착륙 시 위치 보정의 저항값입니다. 높을수록 오버슈팅이 줄어듭니다.")]
         [SerializeField] private float landingCorrectionDamping = 1.5f;
 
         private Vector3 _smoothedLookDirection;
@@ -129,49 +118,6 @@ namespace JWK.Scripts.Drone
 
         #endregion
 
-        // --- [핵심 수정 부분] ---
-        // '도착 후 물리적 안정화 대기' 방식에서 '고도 도착 후 0.5초 대기' 방식으로 변경합니다.
-        private IEnumerator PerformActionCoroutine()
-        {
-            Debug.Log("<color=cyan>[도착 확인]</color> 목표 상공 도착. 고도 안정화 및 0.5초 대기를 시작합니다.");
-
-            // 현재 고도가 목표 고도에 도달할 때까지 기다립니다. (오차 범위 0.5m)
-            // WaitUntil은 조건이 참이 될 때까지 매 프레임 검사하고 코루틴을 중지시킵니다.
-            yield return new WaitUntil(() => Mathf.Abs(CurrentAltitudeAbs - _smoothedTargetAltitudeAbs) < 0.5f);
-            
-            Debug.Log($"<color=green>[고도 안정화 완료]</color> 목표 고도({_smoothedTargetAltitudeAbs:F2}m) 도달. 1초 후 투하합니다.");
-            
-            // 정확히 1초를 기다립니다.
-            yield return new WaitForSeconds(0.5f);
-
-            Debug.Log("<color=yellow>[투하 명령]</color> 0.5초 대기 완료. 투하 시퀀스를 시작합니다.");
-            
-            // 0.5초 대기 후 페이로드 투하 로직을 실행합니다.
-            if (currentPayload == PayloadType.FireExtinguishingBomb)
-            {
-                if(extinguisherDropSystem && _currentBombLoad > 0)
-                {
-                    yield return StartCoroutine(extinguisherDropSystem.DropSingleBomb(_actualFireTargetPosition, this.transform));
-                    _currentBombLoad--;
-                }
-                else
-                {
-                    Debug.LogWarning("ExtinguisherDropSystem이 없거나 폭탄을 모두 소진했습니다.");
-                }
-            }
-            
-            // 투하 후 후퇴 로직은 그대로 유지합니다.
-            yield return new WaitForSeconds(postDropMoveDelay);
-
-            Vector3 retreatDirection = -transform.forward;
-            Vector3 retreatPosition = transform.position + retreatDirection * retreatDistance;
-            
-            _currentTargetPosition = retreatPosition;
-            currentMissionState = DroneMissionState.RetreatingAfterAction;
-        
-            _actionCoroutine = null;
-        }
-        // --- [수정 끝] ---
         #region Unity 생명주기 함수 (Lifecycle Methods)
         private void Awake()
         {
@@ -220,7 +166,6 @@ namespace JWK.Scripts.Drone
             ApplyForcesBasedOnState();
         }
 
-
         private void LateUpdate()
         {
             if (droneModelTransform)
@@ -249,6 +194,7 @@ namespace JWK.Scripts.Drone
             }
         }
         #endregion
+
         #region 상태별 핸들러 (State Handlers)
         private void Handle_TakingOff()
         {
@@ -307,71 +253,53 @@ namespace JWK.Scripts.Drone
             }
         }
         #endregion
-        // ... (이하 나머지 코드는 모두 동일합니다) ...
     
         #region 임무 수행 로직 (Action Logic)
         
-        public void StartSingleTargetMission(Vector3 targetPosition)
+        private IEnumerator PerformActionCoroutine()
         {
-            if (currentMissionState != DroneMissionState.IdleAtStation) return;
+            yield return new WaitUntil(() => Mathf.Abs(CurrentAltitudeAbs - _smoothedTargetAltitudeAbs) < 0.5f);
+            yield return new WaitForSeconds(1.0f); // 안정화를 위해 1초 대기
+
+            if (currentPayload == PayloadType.FireExtinguishingBomb)
+            {
+                if(extinguisherDropSystem && _currentBombLoad > 0)
+                {
+                    yield return StartCoroutine(extinguisherDropSystem.DropSingleBomb(_actualFireTargetPosition, this.transform));
+                    _currentBombLoad--;
+                }
+                else
+                {
+                    Debug.LogWarning("ExtinguisherDropSystem이 없거나 폭탄을 모두 소진했습니다.");
+                }
+            }
             
-            _fireTargetsQueue.Clear();
-            _currentBombLoad = totalBombs;
-            if(extinguisherDropSystem) extinguisherDropSystem.ResetBombs();
+            yield return new WaitForSeconds(postDropMoveDelay);
 
-            var tempTarget = new GameObject("SingleMissionTarget");
-            tempTarget.transform.position = targetPosition;
-            _fireTargetsQueue.Enqueue(tempTarget);
-            Destroy(tempTarget, 300f); 
-
-            StartCoroutine(FullMissionSequence());
-        }
+            Vector3 retreatDirection = -transform.forward;
+            Vector3 retreatPosition = transform.position + retreatDirection * retreatDistance;
+            
+            _currentTargetPosition = retreatPosition;
+            currentMissionState = DroneMissionState.RetreatingAfterAction;
         
-        public void StartFireSuppressionMission(List<GameObject> fireTargets)
-        {
-            if (currentMissionState != DroneMissionState.IdleAtStation) return;
-            if (fireTargets == null || fireTargets.Count == 0)
-            {
-                Debug.LogWarning("진압할 화재 목표가 없습니다.");
-                return;
-            }
-
-            _fireTargetsQueue.Clear();
-            foreach (var target in fireTargets)
-            {
-                _fireTargetsQueue.Enqueue(target);
-            }
-
-            _currentBombLoad = totalBombs;
-            if(extinguisherDropSystem) extinguisherDropSystem.ResetBombs();
-
-            StartCoroutine(FullMissionSequence());
+            _actionCoroutine = null;
         }
 
         private IEnumerator FullMissionSequence()
         {
-            // --- 1. 이륙 준비 ---
-            Debug.Log("출동 명령 수신! 이륙 시퀀스를 시작합니다.");
             if (roofManager) yield return roofManager.Open();
-            else Debug.LogWarning("RoofManager가 연결되지 않았습니다.");
-
             if (!SetNextMissionTarget())
             {
                 Debug.LogError("임무를 시작할 유효한 타겟이 없습니다.");
                 if (roofManager) yield return roofManager.Close();
                 yield break; 
             }
-
-            // --- 2. 이륙 ---
+            
             yield return StartCoroutine(TakeOffSequenceCoroutine());
-            
             yield return new WaitUntil(() => currentMissionState == DroneMissionState.MovingToTarget);
-            
-            Debug.Log("이륙 완료. 잠시 후 지붕을 닫습니다.");
             yield return new WaitForSeconds(roofCloseDelay);
             if (roofManager) yield return roofManager.Close(); 
-
-            // --- 3. 임무 수행 및 복귀 ---
+            
             yield return new WaitUntil(() => currentMissionState == DroneMissionState.ReturningToStation || currentMissionState == DroneMissionState.EmergencyReturn);
             Debug.Log("임무 지역에서 복귀합니다. 스테이션으로 이동합니다.");
 
@@ -382,47 +310,32 @@ namespace JWK.Scripts.Drone
                 return (currentPosXZ - stationPosXZ).sqrMagnitude < _arrivalDistanceThresholdSqr;
             });
             Debug.Log("스테이션 상공 도착. 최종 착륙 위치로 이동합니다.");
-
-            // --- 4. 착륙 준비 (위치 및 방향 정렬) ---
+            
             Vector3 finalApproachPoint = new Vector3(_takeoffPosition.x, transform.position.y, _takeoffPosition.z);
             _currentTargetPosition = finalApproachPoint;
             currentMissionState = DroneMissionState.ReturningToStation; 
-
             yield return new WaitUntil(() => {
                 Vector3 currentPosXZ = new Vector3(transform.position.x, 0, transform.position.z);
                 Vector3 approachPointXZ = new Vector3(finalApproachPoint.x, 0, finalApproachPoint.z);
                 return (currentPosXZ - approachPointXZ).sqrMagnitude < _arrivalDistanceThresholdSqr;
             });
-            Debug.Log("착륙 위치 상공 도착. 방향 정렬 시작.");
-
+            
             currentMissionState = DroneMissionState.HoldingPosition; 
             _smoothedLookDirection = _takeoffRotation * Vector3.forward;
-
-            // 회전이 완료될 때까지 대기
             yield return new WaitUntil(() => Quaternion.Angle(transform.rotation, _takeoffRotation) < 1.0f);
-            Debug.Log("방향 정렬 완료. 착륙 하강을 시작합니다.");
-
-            // --- 5. 착륙 ---
+            
             currentMissionState = DroneMissionState.Landing;
             _targetAltitudeAbs = _takeoffPosition.y;
 
             yield return new WaitForSeconds(roofOpenDelayOnLanding);
-
-            if (roofManager)
-            {
-                Debug.Log("지붕 개방을 시작합니다.");
-                yield return roofManager.Open();
-            }
-
+            if (roofManager) yield return roofManager.Open();
             yield return new WaitUntil(() => currentMissionState == DroneMissionState.IdleAtStation);
-            
-            Debug.Log("착륙 완료. 잠시 후 지붕을 닫습니다.");
             yield return new WaitForSeconds(roofCloseDelay);
             if (roofManager) yield return roofManager.Close();
-            
             Debug.Log("임무 완전 종료. 스테이션에 안전하게 격납되었습니다.");
         }
 
+        // ★★★ [핵심 수정] DecideNextAction 함수의 조건문 변경 ★★★
         private void DecideNextAction()
         {
             if (currentMissionState != DroneMissionState.RetreatingAfterAction)
@@ -430,12 +343,26 @@ namespace JWK.Scripts.Drone
                 return;
             }
 
-            if (SetNextMissionTarget() && _currentBombLoad > 0)
+            // 화재 컨트롤러가 존재하고, 진압 상태가 아니며('IsExtinguished' 확인), 폭탄이 남아있는지 확인
+            if (_activeFireController != null && !_activeFireController.IsExtinguished && _currentBombLoad > 0)
             {
+                Debug.Log("[Mission] 화재가 아직 진압되지 않았습니다. 동일한 목표를 다시 공격합니다.");
                 currentMissionState = DroneMissionState.MovingToTarget;
+                SetMissionTarget(_activeFireController.transform.position);
             }
             else
             {
+                if (_activeFireController == null || (_activeFireController != null && _activeFireController.IsExtinguished))
+                {
+                    Debug.Log("[Mission] 화재 진압 완료! 스테이션으로 복귀합니다.");
+                }
+                else if (_currentBombLoad <= 0)
+                {
+                    Debug.LogWarning("[Mission] 폭탄을 모두 소진했습니다. 스테이션으로 복귀합니다.");
+                }
+                
+                _activeFireController = null; // 미션 타겟 정리
+        
                 if (droneStationLocation)
                 {
                     _currentTargetPosition = droneStationLocation.position;
@@ -445,7 +372,7 @@ namespace JWK.Scripts.Drone
                 }
                 else
                 {
-                    Debug.LogError("Cannot return to station, droneStationLocation is not set! Holding position.");
+                    Debug.LogError("복귀할 스테이션이 지정되지 않았습니다! 현재 위치에 정지합니다.");
                     currentMissionState = DroneMissionState.HoldingPosition;
                 }
             }
@@ -453,29 +380,37 @@ namespace JWK.Scripts.Drone
 
         private bool SetNextMissionTarget()
         {
+            // 레벨 시스템 화재 미션 타겟이 있는지 먼저 확인합니다.
+            if (_activeFireController != null && _activeFireController.gameObject.activeInHierarchy)
+            {
+                SetMissionTarget(_activeFireController.transform.position);
+                DroneCameraEvents.MissionStart(transform, _activeFireController.transform);
+                return true; 
+            }
+    
+            // (대체 로직) 큐에서 다음 타겟을 찾습니다.
             while (_fireTargetsQueue.Count > 0)
             {
                 GameObject nextTarget = _fireTargetsQueue.Dequeue();
                 if (nextTarget)
                 {
-                    SetMissionTarget(nextTarget.transform.position);
-                    
-                    DroneCameraEvents.MissionStart(transform, nextTarget.transform);
-                    return true; 
-                }
-                else
-                {
-                    Debug.LogWarning("[정보] 이미 파괴된 목표(유령 참조)를 큐에서 제거하고 다음을 탐색합니다.");
+                    _activeFireController = nextTarget.GetComponent<LeveledFireController>();
+                    if (_activeFireController != null)
+                    {
+                        SetMissionTarget(nextTarget.transform.position);
+                        DroneCameraEvents.MissionStart(transform, nextTarget.transform);
+                        return true;
+                    }
                 }
             }
-            
+    
+            _activeFireController = null;
             return false; 
         }
         
         private void SetMissionTarget(Vector3 actualFirePosition)
         {
             _actualFireTargetPosition = actualFirePosition;
-
             if (extinguisherDropSystem && _currentBombLoad > 0 && droneStationLocation != null)
             {
                 Vector3 directionToTarget = (actualFirePosition - droneStationLocation.position).normalized;
@@ -495,10 +430,7 @@ namespace JWK.Scripts.Drone
             }
             else
             {
-                if (droneStationLocation == null)
-                {
-                    Debug.LogWarning("DroneStationLocation이 할당되지 않았습니다. 폭탄 투하 위치 보정 없이 임무를 수행합니다.");
-                }
+                if (droneStationLocation == null) Debug.LogWarning("DroneStationLocation이 할당되지 않았습니다.");
                 _currentTargetPosition = actualFirePosition;
             }
         }
@@ -507,20 +439,14 @@ namespace JWK.Scripts.Drone
         {
             _takeoffPosition = transform.position;
             _takeoffRotation = transform.rotation;
-
             DroneEvents.TakeOffSequenceStarted();
-
             yield return new WaitForSeconds(preTakeoffDelay);
-
             currentPayload = PayloadType.FireExtinguishingBomb;
             Vector3 takeoffRefPos = droneStationLocation ? droneStationLocation.position : transform.position;
-        
             if (Physics.Raycast(takeoffRefPos + Vector3.up, Vector3.down, out RaycastHit hit, terrainCheckDistance, groundLayerMask))
                 _targetAltitudeAbs = hit.point.y + missionCruisingAgl;
-            
             else
                 _targetAltitudeAbs = takeoffRefPos.y + missionCruisingAgl;
-        
             currentMissionState = DroneMissionState.TakingOff;
         }
         #endregion
@@ -734,23 +660,65 @@ namespace JWK.Scripts.Drone
             Vector2 targetTilt = new Vector2(targetPitch, roll);
 
             Vector2 springForce = (targetTilt - _visualTilt) * tiltSpringStiffness;
-
             float dampingCoefficient = tiltDamping * 2 * Mathf.Sqrt(tiltSpringStiffness);
-            
             Vector2 dampingForce = -_tiltVelocity * dampingCoefficient;
-
             Vector2 acceleration = springForce + dampingForce;
 
             _tiltVelocity += acceleration * Time.deltaTime;
-            
             _visualTilt += _tiltVelocity * Time.deltaTime;
 
             Quaternion finalRotation = _modelNeutralRotation * Quaternion.Euler(_visualTilt.x, 0, _visualTilt.y);
             droneModelTransform.localRotation = finalRotation;
-            
             droneModelTransform.localPosition = _modelNeutralPosition;
         }
 
+        // ★★★ [핵심 수정] DispatchMissionToRandomFire 로직 수정 ★★★
+        public void DispatchMissionToRandomFire()
+        {
+            if (currentMissionState != DroneMissionState.IdleAtStation) 
+            {
+                Debug.LogWarning("[Mission] 드론이 현재 임무 수행 중입니다."); 
+                return;
+            }
+            if (WildfireManager.Instance == null)
+            {
+                Debug.LogError("[Mission] WildfireManager 인스턴스를 찾을 수 없습니다!");
+                return;
+            }
+    
+            if (!WildfireManager.Instance.isFireActive)
+            {
+                Debug.Log("[Mission] 화재가 없으므로 새로 생성합니다.");
+                WildfireManager.Instance.GenerateFire();
+            }
+    
+            Transform fireTransform = WildfireManager.Instance.GetActiveFireTarget();
+
+            if (fireTransform != null)
+            {
+                _activeFireController = fireTransform.GetComponent<LeveledFireController>();
+                if (_activeFireController == null)
+                {
+                    Debug.LogError("화재 프리팹에 LeveledFireController 스크립트가 없습니다!");
+                    return;
+                }
+
+                _fireTargetsQueue.Clear();
+                _currentBombLoad = totalBombs;
+                if(extinguisherDropSystem) extinguisherDropSystem.ResetBombs();
+
+                StartCoroutine(FullMissionSequence());
+                SendDispatchDataToServer("레벨 시스템 화재 진압", _activeFireController.transform.position);
+            }
+            else
+            {
+                Debug.LogError("[Mission] WildfireManager에서 유효한 화재 타겟을 가져올 수 없습니다!");
+            }
+        }
+        
+        #endregion
+
+        #region Firebase 및 테스트용 임무 시작
         public void DispatchMissionToTestTarget()
         {
             if (currentMissionState != DroneMissionState.IdleAtStation) 
@@ -767,32 +735,21 @@ namespace JWK.Scripts.Drone
             StartSingleTargetMission(testDispatchTarget.position);
             SendDispatchDataToServer("수동 타겟 임무 (테스트)", testDispatchTarget.position);
         }
-
-        public void DispatchMissionToRandomFire()
+        
+        public void StartSingleTargetMission(Vector3 targetPosition)
         {
-            if (currentMissionState != DroneMissionState.IdleAtStation) 
-            {
-                Debug.LogWarning("[Mission] 드론이 현재 임무 수행 중입니다."); 
-                return;
-            }
-            if (!WildfireManager.Instance)
-            {
-                Debug.LogError("[Mission] WildfireManager 인턴스를 찾을 수 없습니다!");
-                return;
-            }
-            if (!WildfireManager.Instance.isFireActive)
-            {
-                Debug.Log("[Mission] 화재가 없으므로 새로 생성합니다.");
-                WildfireManager.Instance.GenerateFires();
-            }
+            if (currentMissionState != DroneMissionState.IdleAtStation) return;
             
-            List<GameObject> fireTargets = WildfireManager.Instance.GetActiveFires();
-            StartFireSuppressionMission(fireTargets);
-            
-            if (fireTargets.Count > 0)
-            {
-                SendDispatchDataToServer("랜덤 화재 진압 (테스트)", fireTargets[0].transform.position);
-            }
+            _fireTargetsQueue.Clear();
+            _currentBombLoad = totalBombs;
+            if(extinguisherDropSystem) extinguisherDropSystem.ResetBombs();
+
+            var tempTarget = new GameObject("SingleMissionTarget");
+            tempTarget.transform.position = targetPosition;
+            _fireTargetsQueue.Enqueue(tempTarget);
+            Destroy(tempTarget, 300f); 
+
+            StartCoroutine(FullMissionSequence());
         }
 
         private void SendDispatchDataToServer(string missionType, Vector3 targetPosition)
@@ -806,10 +763,9 @@ namespace JWK.Scripts.Drone
                 Debug.LogWarning("FirebaseManager가 할당되지 않아 임무 파견 데이터를 전송할 수 없습니다.");
             }
         }
-
         #endregion
 
-        #region Firebase 연동 공개 메서드 (Public Methods for Firebase)
+        #region Firebase 명령 핸들러
 
         public DroneStatusData GetCurrentStatusData()
         {

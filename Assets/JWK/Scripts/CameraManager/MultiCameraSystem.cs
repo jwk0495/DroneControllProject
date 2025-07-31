@@ -166,7 +166,7 @@ namespace JWK.Scripts
                 {
                     MainCamera.gameObject.SetActive(true);
                 }
-                Debug.Log("카메라 상태가 안전하게 복구되었습니다.");
+                // Debug.Log("카메라 상태가 안전하게 복구되었습니다.");
             }
         }
         
@@ -177,7 +177,7 @@ namespace JWK.Scripts
             ImpactCamera.transform.SetParent(DroneTarget);
             ImpactCamera.transform.localPosition = _mechanismViewLocalOffset;
             ImpactCamera.transform.localRotation = Quaternion.Euler(_mechanismViewLocalRotation);
-            Debug.Log("메커니즘 카메라 미리보기가 배치되었습니다.");
+            // Debug.Log("메커니즘 카메라 미리보기가 배치되었습니다.");
         }
 
         private void HandleMissionStart(Transform startPoint, Transform fireTarget)

@@ -1,218 +1,96 @@
-﻿using System;
+﻿using UnityEngine;
 using System.Collections.Generic;
-using Unity.VisualScripting;
-using UnityEngine;
-using Random = UnityEngine.Random;
 
 namespace JWK.Scripts.FireManager
 {
     public class WildfireManager : MonoBehaviour
     {
-        #region 변수 선언
-
         public static WildfireManager Instance { get; private set; }
-        public bool isFireActive => _hasFireBeenGenerated;
-        public List<GameObject> GetActiveFires() => _activeFires;
-        
-        [Header("화재 설정")] [SerializeField] private Terrain targetTerrain;
-        [SerializeField] private GameObject fireParticlePrefab;
-        [SerializeField] private int poolSize = 50; // 풀 크기를 늘려 예외 상황 방지
-        [SerializeField] private int numberOfFiresToSpawn = 10;
+        public bool isFireActive => _activeFire != null && _activeFire.activeInHierarchy;
+        // [수정] 이제 단일 화재 오브젝트의 Transform을 반환하여 드론이 조준할 수 있게 합니다.
+        public Transform GetActiveFireTarget() => _activeFire != null ? _activeFire.transform : null;
 
-        [Header("화재 발생 영역 설정")] [SerializeField]
-        private Vector3 spawnAreaCenter = new Vector3(500, 0, 500);
+        [Header("화재 설정")]
+        [SerializeField] private Terrain targetTerrain;
+        // [수정] 프리팹 변수 이름을 명확하게 변경했습니다. 인스펙터에서 새로 할당해야 합니다.
+        [Tooltip("LeveledFireController 스크립트가 부착된 화재 프리팹을 할당하세요.")]
+        [SerializeField] private GameObject leveledFirePrefab;
 
+        [Header("화재 발생 영역 설정")]
+        [SerializeField] private Vector3 spawnAreaCenter = new Vector3(500, 0, 500);
         [SerializeField] private Vector2 spawnAreaSize = new Vector2(5, 5);
-        [SerializeField] private float fireClusterRadius = 2.0f;
 
-        [Header("화재 발생 제어")] [SerializeField] private bool generateFireNow = false;
-
-        public Func<bool> ExtinguishConditionCheck;
+        [Header("화재 발생 제어")]
+        [SerializeField] private bool generateFireNow = false;
 
         // --- 내부 변수 ---
-        // 최적화: List 대신 Queue를 사용하여 O(1) 시간 복잡도로 오브젝트를 가져옴
-        private Queue<GameObject> _fireParticlePool;
-        private readonly List<GameObject> _activeFires = new List<GameObject>();
-        private bool _hasFireBeenGenerated = false;
-
-        private int _fireNamingCounter = 1;
-
-        #endregion
-
-        #region 초기화
+        private GameObject _activeFire; // 여러 개 대신 단일 화재 오브젝트
 
         private void Awake()
         {
-            if (Instance && Instance != this)
+            if (Instance != null && Instance != this)
+            {
                 Destroy(gameObject);
-
+            }
             else
+            {
                 Instance = this;
+            }
         }
 
         private void Start()
         {
-            InitializeObjectPool();
-        }
-
-        #endregion
-
-        #region 오브젝트 풀링
-
-        private void InitializeObjectPool()
-        {
-            _fireParticlePool = new Queue<GameObject>(poolSize);
-
-            if (!fireParticlePrefab)
+            // 오브젝트 풀링 대신 단일 인스턴스를 미리 생성해 둡니다.
+            if (leveledFirePrefab != null)
             {
-                Debug.LogError("Fire Particle Prefab이 할당되지 않았습니다!!!");
-                enabled = false;
-                return;
+                _activeFire = Instantiate(leveledFirePrefab, transform);
+                _activeFire.SetActive(false); // 처음에는 비활성화
             }
-
-            for (int i = 0; i < poolSize; i++)
+            else
             {
-                GameObject fireInstance = Instantiate(fireParticlePrefab, Vector3.zero, Quaternion.identity, this.transform);
-                fireInstance.SetActive(false);
-                _fireParticlePool.Enqueue(fireInstance); // 풀에 추가
+                Debug.LogError("Leveled Fire Prefab이 할당되지 않았습니다!");
             }
         }
-
-        #endregion
 
         private void Update()
         {
-            if (generateFireNow && !_hasFireBeenGenerated)
+            if (generateFireNow && !isFireActive)
             {
-                GenerateFires();
+                GenerateFire();
                 generateFireNow = false;
             }
-
-            if (_hasFireBeenGenerated)
-            {
-                bool allFiresExtinguished = true;
-
-                foreach (var fire in _activeFires)
-                {
-                    if (fire && fire.activeInHierarchy)
-                    {
-                        allFiresExtinguished = false;
-                        break;
-                    }
-                }
-
-                if (allFiresExtinguished)
-                {
-                    Debug.Log("<color=cyan>모든 화재 진압 완료! 3초 후 연기 제거를 시작합니다.</color>");
-                    TriggerSmokeCleanup();
-                    _hasFireBeenGenerated = false; // 임무 완료 상태로 변경하여 중복 실행 방지
-                }
-            }
-            if (ExtinguishConditionCheck != null && ExtinguishConditionCheck())
-            {
-                ExtinguishAllFires();
-                ExtinguishConditionCheck = null;
-            }
         }
 
-        private void TriggerSmokeCleanup()
+        public void GenerateFire()
         {
-            foreach (var smokeController in SmokeVFXController.ActiveSmokeEffects)
+            if (isFireActive)
             {
-                if(smokeController)
-                    smokeController.StartDelayFadeOut(3.0f);
-            }
-
-            SmokeVFXController.ActiveSmokeEffects.Clear();
-        }
-
-        public void GenerateFires()
-        {
-            if (_hasFireBeenGenerated)
-            {
-                Debug.LogWarning("화재가 이미 발생했습니다. 기존 화재를 먼저 진압하세요.");
+                Debug.LogWarning("화재가 이미 발생했습니다.");
                 return;
             }
-
             if (!targetTerrain)
             {
                 Debug.LogError("Terrain이 할당되지 않았습니다.");
                 return;
             }
-
-            if (SmokeVFXController.ActiveSmokeEffects.Count > 0)
+            if (_activeFire == null)
             {
-                Debug.Log("이전 임무의 연기 파티클이 남아있어 정리합니다.");
-                foreach (var smoke in SmokeVFXController.ActiveSmokeEffects)
-                {
-                    if(smoke)
-                        Destroy(smoke.gameObject);
-                }
-                SmokeVFXController.ActiveSmokeEffects.Clear();
+                Debug.LogError("화재 오브젝트가 초기화되지 않았습니다.");
+                return;
             }
-            
-            _activeFires.Clear();
-            
+
+            // 화재 발생 위치 계산
             Vector3 areaStartCorner = spawnAreaCenter - new Vector3(spawnAreaSize.x / 2, 0, spawnAreaSize.y / 2);
-            float randomEpicenterX = Random.Range(0, spawnAreaSize.x);
-            float randomEpicenterZ = Random.Range(0, spawnAreaSize.y);
-            Vector3 fireEpicenter = areaStartCorner + new Vector3(randomEpicenterX, 0, randomEpicenterZ);
+            float randomX = Random.Range(0, spawnAreaSize.x);
+            float randomZ = Random.Range(0, spawnAreaSize.y);
+            Vector3 spawnPos = areaStartCorner + new Vector3(randomX, 0, randomZ);
 
-            int spawnCount = Mathf.Min(numberOfFiresToSpawn, _fireParticlePool.Count);
+            float terrainHeight = targetTerrain.SampleHeight(spawnPos);
+            Vector3 finalSpawnPosition = new Vector3(spawnPos.x, terrainHeight, spawnPos.z);
 
-            if (spawnCount < numberOfFiresToSpawn)
-                Debug.LogWarning($"풀이 부족하여 {spawnCount}개의 화재만 생성합니다.");
-
-            for (int i = 0; i < spawnCount; i++)
-            {
-                GameObject fireInstance = GetPooledFireObject();
-                if (!fireInstance) break; // 풀이 비었으면 중단
-
-                Vector2 randomCirclePoint = Random.insideUnitCircle * fireClusterRadius;
-                Vector3 spawnPos = fireEpicenter + new Vector3(randomCirclePoint.x, 0, randomCirclePoint.y);
-
-                float terrainHeight = targetTerrain.SampleHeight(spawnPos);
-                Vector3 finalSpawnPosition = new Vector3(spawnPos.x, terrainHeight, spawnPos.z);
-
-                fireInstance.transform.SetPositionAndRotation(finalSpawnPosition, Quaternion.identity);
-
-                fireInstance.name = $"Fire{_fireNamingCounter++}";
-                
-                fireInstance.SetActive(true);
-
-                _activeFires.Add(fireInstance);
-            }
-
-            _hasFireBeenGenerated = true;
-        }
-
-        public void ExtinguishAllFires()
-        {
-            if (_activeFires.Count == 0) return;
-
-            Debug.Log("모든 화재를 진압합니다...");
-            foreach (GameObject fire in _activeFires)
-            {
-                fire.SetActive(false);
-                _fireParticlePool.Enqueue(fire); // 비활성화 후 풀에 다시 넣어줌
-            }
-
-            _activeFires.Clear();
-            _hasFireBeenGenerated = false;
-            
-            _fireNamingCounter = 1;
-        }
-
-        /// <summary>
-        /// 오브젝트 풀에서 비활성화 상태인 화재 오브젝트를 찾아 반환
-        /// </summary>
-        private GameObject GetPooledFireObject()
-        {
-            if (_fireParticlePool.Count > 0)
-                return _fireParticlePool.Dequeue(); // O(1) 작업
-
-            Debug.LogWarning("오브젝트 풀이 비어있습니다! 모든 파티클이 사용 중입니다.");
-            return null;
+            _activeFire.transform.position = finalSpawnPosition;
+            _activeFire.SetActive(true); // 화재를 활성화하여 OnEnable 함수가 호출되게 함
+            Debug.Log($"<color=red>레벨 시스템 화재 발생!</color> 위치: {finalSpawnPosition}");
         }
     }
 }
