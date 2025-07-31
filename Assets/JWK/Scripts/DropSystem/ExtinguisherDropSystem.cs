@@ -30,7 +30,7 @@ namespace JWK.Scripts.DropSystem
 
         // --- 코루틴 캐싱 (GC 최적화) ---
         private WaitForSeconds _actionDelayWait;
-        private readonly WaitForSeconds _clearanceDelay = new WaitForSeconds(1.0f);
+        private readonly WaitForSeconds _clearanceDelay = new WaitForSeconds(0.5f);
 
         private void Awake()
         {
