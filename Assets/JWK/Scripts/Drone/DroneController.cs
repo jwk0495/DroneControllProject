@@ -245,10 +245,11 @@ namespace JWK.Scripts.Drone
                 IsArrived = true;
                 currentMissionState = DroneMissionState.PerformingAction;
 
-                var fireTargetFocus = new GameObject("FireTargetFocusPoint");
-                fireTargetFocus.transform.position = _actualFireTargetPosition;
-                DroneCameraEvents.ArrivedAtDropZone(fireTargetFocus.transform);
-                Destroy(fireTargetFocus, 5f); 
+                // ====================================================================================
+                // [수정] 불필요한 게임 오브젝트 생성을 제거하고, 목표 위치(Vector3)를 직접 이벤트로 전달합니다.
+                // 이렇게 하면 DroneController가 카메라 시스템을 위해 오브젝트를 관리할 필요가 없어집니다.
+                DroneCameraEvents.ArrivedAtDropZone(_actualFireTargetPosition);
+                // ====================================================================================
 
                 if (_actionCoroutine != null) StopCoroutine(_actionCoroutine);
                 _actionCoroutine = StartCoroutine(PerformActionCoroutine());
@@ -270,26 +271,19 @@ namespace JWK.Scripts.Drone
         
         private void Handle_Landing()
         {
-            // 드론이 지면에 충분히 가까워졌는지 확인
             if (Mathf.Abs(CurrentAltitudeAbs - _targetAltitudeAbs) < 0.15f)
             {
-                // 드론의 움직임이 거의 멈췄는지 확인
                 if (_rb.linearVelocity.sqrMagnitude < 0.01f && _rb.angularVelocity.sqrMagnitude < 0.01f)
                 {
-                    // 물리적 떨림을 방지하기 위해 잠시 Rigidbody를 Kinematic으로 설정
                     _rb.isKinematic = true; 
-                    // 위치와 회전을 이륙 시의 값으로 정확하게 설정 (미세 오차 보정)
                     transform.position = _takeoffPosition;
                     transform.rotation = _takeoffRotation;
-                    // 다시 물리 효과를 받도록 Kinematic 해제
                     _rb.isKinematic = false;
 
-                    // 상태를 Idle로 변경하고 임무 관련 변수 초기화
                     currentMissionState = DroneMissionState.IdleAtStation;
                     _currentBombLoad = totalBombs;
                     PerformInitialGroundCheckAndSetAltitude();
                     
-                    // 착륙 완료 이벤트 호출
                     DroneEvents.LandingSequenceCompleted();
                 }
             }
@@ -337,7 +331,6 @@ namespace JWK.Scripts.Drone
 
         private IEnumerator FullMissionSequence()
         {
-            // --- 1. 이륙 준비 ---
             Debug.Log("출동 명령 수신! 이륙 시퀀스를 시작합니다.");
             if (roofManager) yield return roofManager.Open();
             else Debug.LogWarning("RoofManager가 연결되지 않았습니다.");
@@ -349,18 +342,15 @@ namespace JWK.Scripts.Drone
                 yield break; 
             }
 
-            // --- 2. 이륙 ---
             yield return StartCoroutine(TakeOffSequenceCoroutine());
             
             yield return new WaitUntil(() => currentMissionState == DroneMissionState.MovingToTarget);
             Debug.Log("이륙 완료. 지붕을 닫습니다.");
             if (roofManager) roofManager.Close(); 
 
-            // --- 3. 임무 수행 및 복귀 ---
             yield return new WaitUntil(() => currentMissionState == DroneMissionState.ReturningToStation || currentMissionState == DroneMissionState.EmergencyReturn);
             Debug.Log("임무 지역에서 복귀합니다. 스테이션으로 이동합니다.");
 
-            // 스테이션 중앙 근처에 도착할 때까지 대기
             yield return new WaitUntil(() => {
                 if (!droneStationLocation) return true; 
                 Vector3 currentPosXZ = new Vector3(transform.position.x, 0, transform.position.z);
@@ -369,12 +359,10 @@ namespace JWK.Scripts.Drone
             });
             Debug.Log("스테이션 상공 도착. 최종 착륙 위치로 이동합니다.");
 
-            // --- 4. 착륙 준비 (위치 및 방향 정렬) ---
             Vector3 finalApproachPoint = new Vector3(_takeoffPosition.x, transform.position.y, _takeoffPosition.z);
             _currentTargetPosition = finalApproachPoint;
             currentMissionState = DroneMissionState.ReturningToStation; 
 
-            // 최종 접근 지점에 도착할 때까지 대기
             yield return new WaitUntil(() => {
                 Vector3 currentPosXZ = new Vector3(transform.position.x, 0, transform.position.z);
                 Vector3 approachPointXZ = new Vector3(finalApproachPoint.x, 0, finalApproachPoint.z);
@@ -386,11 +374,9 @@ namespace JWK.Scripts.Drone
             
             _smoothedLookDirection = _takeoffRotation * Vector3.forward;
 
-            // 회전이 완료될 때까지 대기
             yield return new WaitUntil(() => Quaternion.Angle(transform.rotation, _takeoffRotation) < 1.0f);
             Debug.Log("방향 정렬 완료. 착륙을 시작합니다.");
 
-            // --- 5. 착륙 ---
             if (roofManager) yield return roofManager.Open();
 
             currentMissionState = DroneMissionState.Landing;
@@ -638,15 +624,11 @@ namespace JWK.Scripts.Drone
             _rb.AddForce(Vector3.up * Mathf.Clamp(totalVertForce, 0.0f, hoverForce * maxForceMultiplier), ForceMode.Acceleration);
         }
 
-        //====================================================================================
-        // [수정] 착륙 시 수직 하강과 동시에 수평 위치/회전을 부드럽게 보정하는 새 로직
         private void ApplyLandingForce()
         {
-            // 1. 수직 하강 제어
             if (CurrentAltitudeAbs > _targetAltitudeAbs + 0.05f)
             {
                 float descentRate = landingDescentRate;
-                // 지면에 매우 가까워지면 하강 속도를 절반으로 줄여 부드럽게 착지
                 if (CurrentAltitudeAbs < _targetAltitudeAbs + 1.0f)
                 {
                     descentRate *= 0.5f;
@@ -656,35 +638,29 @@ namespace JWK.Scripts.Drone
                 _rb.AddForce(Vector3.up * upwardThrust, ForceMode.Acceleration);
             }
 
-            // 2. 수평 위치 보정 (이륙했던 XZ 좌표로 부드럽게 이동)
             Vector3 targetPosXZ = new Vector3(_takeoffPosition.x, 0, _takeoffPosition.z);
             Vector3 currentPosXZ = new Vector3(transform.position.x, 0, transform.position.z);
             Vector3 positionError = targetPosXZ - currentPosXZ;
             
-            // PD 제어기 원리를 이용한 보정 힘 계산
             Vector3 correctiveForce = positionError * landingCorrectionForce;
             
             Vector3 horizontalVelocity = _rb.linearVelocity;
             horizontalVelocity.y = 0;
             
-            // 오버슈팅(목표를 지나치는 현상)을 막기 위해 현재 속도의 반대 방향으로 저항(Damping)을 줌
             correctiveForce -= horizontalVelocity * landingCorrectionDamping;
             
             _rb.AddForce(new Vector3(correctiveForce.x, 0, correctiveForce.z), ForceMode.Acceleration);
 
-            // 3. 회전 보정 (이륙 시의 방향으로 부드럽게 회전)
             Quaternion targetRotation = _takeoffRotation;
             float targetAngleY = targetRotation.eulerAngles.y;
             float angleErrorY = Mathf.DeltaAngle(_rb.rotation.eulerAngles.y, targetAngleY);
-            float pTorque = angleErrorY * Mathf.Deg2Rad * kpRotation; // 기존 회전 제어 변수 재사용
-            float dTorque = -_rb.angularVelocity.y * kdRotation; // 기존 회전 제어 변수 재사용
+            float pTorque = angleErrorY * Mathf.Deg2Rad * kpRotation;
+            float dTorque = -_rb.angularVelocity.y * kdRotation;
             _rb.AddTorque(Vector3.up * Mathf.Clamp(pTorque + dTorque, -maxRotationTorque, maxRotationTorque), ForceMode.Acceleration);
         }
-        //====================================================================================
 
         private void ApplyHorizontalAndRotationalForces()
         {
-            // 수평/회전 제어가 필요 없는 상태들
             if (currentMissionState == DroneMissionState.IdleAtStation ||
                 currentMissionState == DroneMissionState.Landing ||
                 currentMissionState == DroneMissionState.TakingOff)
@@ -693,7 +669,6 @@ namespace JWK.Scripts.Drone
                 return;
             }
             
-            // 임무 수행 중에는 제자리에서 호버링만 함
             if (currentMissionState == DroneMissionState.PerformingAction)
             {
                 ApplyHorizontalDamping();
@@ -701,10 +676,8 @@ namespace JWK.Scripts.Drone
                 return;
             }
 
-            // HoldingPosition이 아닐 때만 수평 이동 로직을 실행
             if (currentMissionState != DroneMissionState.HoldingPosition)
             {
-                // --- 이동 로직 ---
                 Vector3 currentPosXZ = transform.position;
                 currentPosXZ.y = 0;
                 Vector3 targetPosXZ = _currentTargetPosition;
@@ -712,7 +685,6 @@ namespace JWK.Scripts.Drone
                 Vector3 directionToTarget = (targetPosXZ - currentPosXZ);
                 float distanceToTarget = directionToTarget.magnitude;
 
-                // 목표 지점이 매우 가까우면 현재 방향을 유지하도록 하여 급격한 회전을 방지
                 Vector3 targetLookDirection = (distanceToTarget > 0.01f) ? directionToTarget.normalized : transform.forward;
                 _smoothedLookDirection = Vector3.Slerp(_smoothedLookDirection, targetLookDirection, Time.fixedDeltaTime / rotationSmoothTime);
                 
@@ -740,14 +712,12 @@ namespace JWK.Scripts.Drone
             }
             else
             {
-                // HoldingPosition일 때는 수평 이동을 멈춤 (회전은 방해하지 않음)
                 Vector3 horizontalVel = _rb.linearVelocity;
                 horizontalVel.y = 0;
                 _rb.AddForce(-horizontalVel, ForceMode.VelocityChange);
                 _currentSmoothedVelocity = Vector3.zero;
             }
             
-            // --- 회전 로직 (이동 상태와 HoldingPosition 상태 모두에서 실행됨) ---
             Quaternion targetRotation = Quaternion.LookRotation(_smoothedLookDirection);
             float targetAngleY = targetRotation.eulerAngles.y;
             float angleErrorY = Mathf.DeltaAngle(_rb.rotation.eulerAngles.y, targetAngleY);
