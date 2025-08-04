@@ -16,10 +16,10 @@ public class ZLiftTrigger : MonoBehaviour
     public float moveSpeed = 0.2f;
 
     private float[] liftWeightMoveDistancesUp = { -1.72f, -1.24f, -0.340097f, -0.785788f };
-    private float[] liftWeightMoveDistancesDown = { 0.7977f, 0.340597f, 1.228f};
+    private float[] liftWeightMoveDistancesDown = { 0.7977f, 0.340597f, 1.228f, 1.719588f };
 
     private float[] carriageFrameMoveDistancesUp = { 1.72f, 1.24f, 0.340097f, 0.785788f }; // Y4
-    private float[] carriageFrameMoveDistancesDown = { -0.7977f, -0.340597f, -1.228f}; // Y5
+    private float[] carriageFrameMoveDistancesDown = { -0.7977f, -0.340597f, -1.228f, -1.719588f}; // Y5
 
     private Vector3 currentLWLocalTargetPosition;
     private Vector3 currentCFLocalTargetPosition;
