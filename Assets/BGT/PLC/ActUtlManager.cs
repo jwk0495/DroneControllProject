@@ -1,6 +1,7 @@
 using ActUtlType64Lib;
 using System;
 using System.Collections.Concurrent; // 스레드로부터 안전한 큐 사용
+using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 
@@ -89,6 +90,7 @@ public class ActUtlManager : MonoBehaviour
                     receivedDataQueue.Enqueue($"Y0YF:{data[0]}");
                     receivedDataQueue.Enqueue($"Y10Y1F:{data[1]}");
                 }
+
                 // 3. Unity에서 보낼 명령 처리 (X 디바이스 쓰기 등)
                 while (sendCommandQueue.TryDequeue(out string command))
                 {
@@ -141,7 +143,7 @@ public class ActUtlManager : MonoBehaviour
             sendCommandQueue.Enqueue(command); 
         }
     }
-
+    
     /// <summary>
     /// 애플리케이션 종료 시 호출되어 스레드를 안전하게 종료
     /// </summary>

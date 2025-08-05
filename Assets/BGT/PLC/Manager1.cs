@@ -18,7 +18,7 @@ public class Manager1 : MonoBehaviour
     private bool currentYAState; private bool currentYBState;
     private bool currentYCState; private bool currentYDState;
 
-    private bool currentY101State; private bool currentY111State;
+    public bool currentY101State; public bool currentY111State;
     private bool currentY102State; private bool currentY112State;
 
 
