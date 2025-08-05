@@ -1,4 +1,4 @@
-using System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -6,16 +6,16 @@ namespace JWK.Scripts.Station
 {
     public class RoofManager : MonoBehaviour
     {
-        [Header("ÁöºØ ÆÄÃ÷ ¼³Á¤")]
-        [Tooltip("ºÎ¸ğ¿¡¼­ ÀÚ½Ä ¼ø¼­·Î ÁöºØ ¿ÀºêÁ§Æ®¸¦ ÇÒ´çÇØÁÖ¼¼¿ä. (¿¹: [roof2, roof3, roof4])")]
+        [Header("ì§€ë¶• íŒŒì¸  ì„¤ì •")]
+        [Tooltip("ë¶€ëª¨ì—ì„œ ìì‹ ìˆœì„œë¡œ ì§€ë¶• ì˜¤ë¸Œì íŠ¸ë¥¼ í• ë‹¹í•´ì£¼ì„¸ìš”. (ì˜ˆ: [roof2, roof3, roof4])")]
         public List<GameObject> roofParts;
 
-        [Header("¾Ö´Ï¸ŞÀÌ¼Ç ¼³Á¤")]
-        [Tooltip("°¢ ÁöºØ ÆÄÃ÷ ÇÏ³ª°¡ ¿òÁ÷ÀÌ´Â µ¥ °É¸®´Â ½Ã°£(ÃÊ)ÀÔ´Ï´Ù.")]
+        [Header("ì• ë‹ˆë©”ì´ì…˜ ì„¤ì •")]
+        [Tooltip("ê° ì§€ë¶• íŒŒì¸  í•˜ë‚˜ê°€ ì›€ì§ì´ëŠ” ë° ê±¸ë¦¬ëŠ” ì‹œê°„(ì´ˆ)ì…ë‹ˆë‹¤.")]
         [SerializeField] private float partMoveDuration = 1.5f;
-        [Tooltip("ÀÌÀü ÆÄÃ÷°¡ ¿òÁ÷ÀÌ±â ½ÃÀÛÇÑ ÈÄ ´ÙÀ½ ÆÄÃ÷°¡ ¿òÁ÷ÀÌ±â ½ÃÀÛÇÒ ¶§±îÁöÀÇ ½Ã°£ °£°İÀÔ´Ï´Ù. partMoveDurationº¸´Ù Âª°Ô ¼³Á¤ÇÏ¸é ¿òÁ÷ÀÓÀÌ °ãÃÄ º¸ÀÔ´Ï´Ù.")]
+        [Tooltip("ì´ì „ íŒŒì¸ ê°€ ì›€ì§ì´ê¸° ì‹œì‘í•œ í›„ ë‹¤ìŒ íŒŒì¸ ê°€ ì›€ì§ì´ê¸° ì‹œì‘í•  ë•Œê¹Œì§€ì˜ ì‹œê°„ ê°„ê²©ì…ë‹ˆë‹¤. partMoveDurationë³´ë‹¤ ì§§ê²Œ ì„¤ì •í•˜ë©´ ì›€ì§ì„ì´ ê²¹ì³ ë³´ì…ë‹ˆë‹¤.")]
         [SerializeField] private float staggerDelay = 1.2f; 
-        [Tooltip("ÁöºØÀÌ ÀÌµ¿ÇÒ °Å¸®¿Í ¹æÇâÀÇ ±âÁØ°ªÀÔ´Ï´Ù.")]
+        [Tooltip("ì§€ë¶•ì´ ì´ë™í•  ê±°ë¦¬ì™€ ë°©í–¥ì˜ ê¸°ì¤€ê°’ì…ë‹ˆë‹¤.")]
         [SerializeField] private Vector3 moveOffset = new Vector3(1.4f, 0, 0);
 
         private Vector3[] _initialLocalPositions;
@@ -24,12 +24,12 @@ namespace JWK.Scripts.Station
         private bool _isRoofOpen = false;
         private Coroutine _roofCoroutine;
 
-        // ... Start() ¸Ş¼­µå´Â ±âÁ¸°ú µ¿ÀÏ ...
+        // ... Start() ë©”ì„œë“œëŠ” ê¸°ì¡´ê³¼ ë™ì¼ ...
         void Start()
         {
             if (roofParts == null || roofParts.Count == 0)
             {
-                Debug.LogError("Roof Parts ¸®½ºÆ®°¡ ºñ¾îÀÖ½À´Ï´Ù! ÀÎ½ºÆåÅÍ¿¡¼­ ÁöºØ ¿ÀºêÁ§Æ®¸¦ ÇÒ´çÇØÁÖ¼¼¿ä.", this);
+                Debug.LogError("Roof Parts ë¦¬ìŠ¤íŠ¸ê°€ ë¹„ì–´ìˆìŠµë‹ˆë‹¤! ì¸ìŠ¤í™í„°ì—ì„œ ì§€ë¶• ì˜¤ë¸Œì íŠ¸ë¥¼ í• ë‹¹í•´ì£¼ì„¸ìš”.", this);
                 enabled = false; 
                 return;
             }
@@ -46,13 +46,13 @@ namespace JWK.Scripts.Station
                 }
                 else
                 {
-                    Debug.LogError($"Roof Parts ¸®½ºÆ®ÀÇ {i}¹øÂ° Ç×¸ñÀÌ ºñ¾îÀÖ½À´Ï´Ù.", this);
+                    Debug.LogError($"Roof Parts ë¦¬ìŠ¤íŠ¸ì˜ {i}ë²ˆì§¸ í•­ëª©ì´ ë¹„ì–´ìˆìŠµë‹ˆë‹¤.", this);
                 }
             }
         }
 
 
-        // [¼öÁ¤] Å×½ºÆ®¿ë Update()´Â Á¦°ÅÇÏ°Å³ª ÁÖ¼® Ã³¸®ÇÕ´Ï´Ù.
+        // [ìˆ˜ì •] í…ŒìŠ¤íŠ¸ìš© Update()ëŠ” ì œê±°í•˜ê±°ë‚˜ ì£¼ì„ ì²˜ë¦¬í•©ë‹ˆë‹¤.
         /*
         void Update()
         {
@@ -68,29 +68,29 @@ namespace JWK.Scripts.Station
         }
         */
 
-        // [¼öÁ¤] ¸Ş¼­µå°¡ CoroutineÀ» ¹İÈ¯ÇÏµµ·Ï º¯°æÇÕ´Ï´Ù.
+        // [ìˆ˜ì •] ë©”ì„œë“œê°€ Coroutineì„ ë°˜í™˜í•˜ë„ë¡ ë³€ê²½í•©ë‹ˆë‹¤.
         public Coroutine Open()
         {
             if (!_isRoofOpen)
             {
-                Debug.Log("ÁöºØÀ» ¿±´Ï´Ù...");
+                // Debug.Log("ì§€ë¶•ì„ ì—½ë‹ˆë‹¤...");
                 return MoveRoof(true);
             }
             return null;
         }
 
-        // [¼öÁ¤] ¸Ş¼­µå°¡ CoroutineÀ» ¹İÈ¯ÇÏµµ·Ï º¯°æÇÕ´Ï´Ù.
+        // [ìˆ˜ì •] ë©”ì„œë“œê°€ Coroutineì„ ë°˜í™˜í•˜ë„ë¡ ë³€ê²½í•©ë‹ˆë‹¤.
         public Coroutine Close()
         {
             if (_isRoofOpen)
             {
-                Debug.Log("ÁöºØÀ» ´İ½À´Ï´Ù...");
+                // Debug.Log("ì§€ë¶•ì„ ë‹«ìŠµë‹ˆë‹¤...");
                 return MoveRoof(false);
             }
             return null;
         }
 
-        // [¼öÁ¤] ¸Ş¼­µå°¡ CoroutineÀ» ¹İÈ¯ÇÏµµ·Ï º¯°æÇÕ´Ï´Ù.
+        // [ìˆ˜ì •] ë©”ì„œë“œê°€ Coroutineì„ ë°˜í™˜í•˜ë„ë¡ ë³€ê²½í•©ë‹ˆë‹¤.
         private Coroutine MoveRoof(bool open)
         {
             if (_roofCoroutine != null)
@@ -102,10 +102,9 @@ namespace JWK.Scripts.Station
             return _roofCoroutine;
         }
         
-        // ... ³ª¸ÓÁö ÄÚµå´Â ±âÁ¸°ú µ¿ÀÏ ...
         private IEnumerator MoveSequenceCoroutine(bool open)
         {
-            // ´İ±â: ¸®½ºÆ®ÀÇ ³¡(ÀÚ½Ä, 4¹ø)ºÎÅÍ Ã³À½(ºÎ¸ğ, 2¹ø) ¼ø¼­·Î ¿òÁ÷ÀÔ´Ï´Ù.
+            // ë‹«ê¸°: ë¦¬ìŠ¤íŠ¸ì˜ ë(ìì‹, 4ë²ˆ)ë¶€í„° ì²˜ìŒ(ë¶€ëª¨, 2ë²ˆ) ìˆœì„œë¡œ ì›€ì§ì…ë‹ˆë‹¤.
             if (!open)
             {
                 for (int i = roofParts.Count - 1; i >= 0; i--)
@@ -117,7 +116,7 @@ namespace JWK.Scripts.Station
                     }
                 }
             }
-            // ¿­±â: ¸®½ºÆ®ÀÇ Ã³À½(ºÎ¸ğ, 2¹ø)ºÎÅÍ ³¡(ÀÚ½Ä, 4¹ø) ¼ø¼­·Î ¿òÁ÷ÀÔ´Ï´Ù.
+            // ì—´ê¸°: ë¦¬ìŠ¤íŠ¸ì˜ ì²˜ìŒ(ë¶€ëª¨, 2ë²ˆ)ë¶€í„° ë(ìì‹, 4ë²ˆ) ìˆœì„œë¡œ ì›€ì§ì…ë‹ˆë‹¤.
             else
             {
                 for (int i = 0; i < roofParts.Count; i++)

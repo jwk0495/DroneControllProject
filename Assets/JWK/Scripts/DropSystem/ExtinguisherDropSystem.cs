@@ -56,7 +56,7 @@ namespace JWK.Scripts.DropSystem
                 bombList.Add(bombTransform.gameObject);
             }
 
-            Debug.Log($"{bombList.Count}개의 폭탄이 자동으로 리스트에 추가되었습니다.", this.gameObject);
+            // Debug.Log($"{bombList.Count}개의 폭탄이 자동으로 리스트에 추가되었습니다.", this.gameObject);
         }
 
         public void ResetBombs()
