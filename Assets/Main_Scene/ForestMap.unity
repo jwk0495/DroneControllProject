@@ -173,7 +173,7 @@ MonoBehaviour:
   ImpactCamera: {fileID: 5446280060356848724}
   DroneTarget: {fileID: 672910528944705571}
   StationTarget: {fileID: 7560243877235239486}
-  _followOffset: {x: 0, y: 5, z: -10}
+  _followOffset: {x: 0, y: 3, z: -7}
   _lookAtOffset: {x: 0, y: 1.5, z: 0}
   _followSmoothTime: 1.2
   _rotationSmoothTime: 1.2
@@ -182,7 +182,7 @@ MonoBehaviour:
   _stationCameraOffset: {x: -9, y: 8, z: -12}
   _mechanismViewLocalOffset: {x: -2, y: 0, z: 0}
   _mechanismViewLocalRotation: {x: 0, y: 90, z: 0}
-  _mechanismViewDuration: 7
+  _mechanismViewDuration: 8.5
 --- !u!81 &58011087
 AudioListener:
   m_ObjectHideFlags: 0
@@ -1482,7 +1482,7 @@ PrefabInstance:
       objectReference: {fileID: 1050516065}
     - target: {fileID: 7410789768016830135, guid: f122bbd9556f22a40a6452d0b3da5699, type: 3}
       propertyPath: tiltSpringStiffness
-      value: 30
+      value: 15
       objectReference: {fileID: 0}
     - target: {fileID: 7410789768016830135, guid: f122bbd9556f22a40a6452d0b3da5699, type: 3}
       propertyPath: droneStationLocation

@@ -346,7 +346,7 @@ namespace JWK.Scripts.Drone
             // 화재 컨트롤러가 존재하고, 진압 상태가 아니며('IsExtinguished' 확인), 폭탄이 남아있는지 확인
             if (_activeFireController != null && !_activeFireController.IsExtinguished && _currentBombLoad > 0)
             {
-                Debug.Log("[Mission] 화재가 아직 진압되지 않았습니다. 동일한 목표를 다시 공격합니다.");
+                // Debug.Log("[Mission] 화재가 아직 진압되지 않았습니다! 동일한 목표를 다시 진압 시도하빈다.");
                 currentMissionState = DroneMissionState.MovingToTarget;
                 SetMissionTarget(_activeFireController.transform.position);
             }
@@ -688,7 +688,7 @@ namespace JWK.Scripts.Drone
     
             if (!WildfireManager.Instance.isFireActive)
             {
-                Debug.Log("[Mission] 화재가 없으므로 새로 생성합니다.");
+                // Debug.Log("[Mission] 화재가 없으므로 새로 생성합니다.");
                 WildfireManager.Instance.GenerateFire();
             }
     

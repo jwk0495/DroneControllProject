@@ -62,12 +62,15 @@ namespace JWK.Scripts.FireManager
         {
             if (isExtinguished) return;
 
-            Debug.Log($"<color=orange><b>[피격!]</b></color> Frame: {Time.frameCount}, 현재 Hit Count: {currentHits}, 목표치: {bombsToExtinguish}");
+            // Debug.Log($"<color=orange><b>[피격!]</b></color> Frame: {Time.frameCount}, 현재 Hit Count: {currentHits}, 목표치: {bombsToExtinguish}");
             
             currentHits++;
             
-            int remainingHealth = bombsToExtinguish - currentHits;
-            Debug.Log($"<color=orange><b>[화재 피격!]</b></color> Hit Count: {currentHits}. 남은 내구도: {remainingHealth} / {bombsToExtinguish}");
+            // 현재까지의 타격 횟수를 기반으로 진화율(%) 계산
+            float extinguishingProgress = ((float)currentHits / bombsToExtinguish) * 100f;
+
+            // 로그 색상도 긍정적인 의미의 녹색으로 변경했습니다.
+            Debug.Log($"<color=green><b>[화재 진압 중]</b></color> Hit Count: {currentHits}. 진화율: {extinguishingProgress:F0}%");
 
             // 진행 중인 크기 변경 코루틴이 있다면 중지하고 새로 시작합니다.
             StopCoroutine("UpdateFireVFXSmoothly");
