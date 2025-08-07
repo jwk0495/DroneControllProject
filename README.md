@@ -66,76 +66,9 @@
 
 ---
 
-## ⚙️ 사전 준비 (Windows 사용자 / 최초 1회)
-
-> 프로젝트를 처음 시작하기 전, PowerShell 스크립트를 실행할 수 있도록 아래 설정을 딱 한 번만 진행해주세요.
-
-### **PowerShell 실행 정책 변경**
-
-1.  **PowerShell을 "관리자 권한으로 실행"**:
-    * Windows 검색창에 `powershell`을 입력한 후, **'Windows PowerShell'** 에 마우스 오른쪽 버튼을 클릭하여 **'관리자 권한으로 실행'**을 선택합니다.
-2.  **명령어 입력**:
-    * 관리자 권한으로 열린 PowerShell 창에 아래 명령어를 그대로 복사하여 붙여넣고 `Enter` 키를 누릅니다.
-    ```powershell
-    Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
-    ```
-3.  **변경 수락**:
-    * 실행 정책을 변경할지 묻는 메시지가 나타나면 `Y`를 입력하고 `Enter` 키를 누릅니다.
-    * 창을 닫으면 설정이 완료됩니다.
-
----
-
-## ⚙️ 파이썬 웹 서버 설정 (Setup Python Web Server)
-
-1.  **터미널을 열고 프로젝트 내의 `PythonWebServer` 폴더로 이동합니다.**
-    * 예시: `cd C:\path\to\your\cloned\folder\TeamProject\PythonWebServer`
-
-2.  **가상 환경 생성 (최초 한 번만)**
-    ```bash
-    python -m venv venv
-    ```
-
-3.  **가상 환경 활성화**
-    * **PowerShell**: `.\venv\Scripts\activate`
-    * **CMD**: `venv\Scripts\activate`
-    * 성공하면 프롬프트의 맨 앞에 `(venv)` 가 표시됩니다.
-
-4.  **필요한 라이브러리 설치**
-    ```bash
-    pip install Flask Flask-SocketIO eventlet
-    ```
-
----
-
-## ▶️ 실행 방법
-
-1.  **웹 서버 실행**
-    * 터미널을 열고 `TeamProject/PythonWebServer` 폴더로 이동 후 가상 환경을 활성화합니다.
-    * 다음 명령어로 서버를 실행합니다.
-        ```bash
-        python app.py
-        ```
-    * 터미널에 `... wsgi starting up on http://0.0.0.0:5000` 메시지가 보이면 서버가 정상적으로 실행 중인 것입니다.
-
-2.  **Unity 시뮬레이션 실행**
-    * Unity 에디터에서 `TeamProject`를 열고, 상단의 플레이(▶) 버튼을 누릅니다.
-    * Unity 콘솔 창에 `[Unity] WebSocket Connected!` 메시지가 나타나는지 확인합니다.
-
-3.  **웹 관제 UI 접속**
-    * 웹 브라우저를 열고 다음 주소로 접속합니다.
-    * `http://127.0.0.1:5000`
-
----
 
 ## 📂 폴더 구조 (Folder Structure)
 
 * `TeamProject/` : Unity 프로젝트의 핵심 파일들(Assets, Packages, ProjectSettings 등)이 위치합니다.
-* `TeamProject/PythonWebServer/` : HTTP 웹 서버의 모든 소스 코드(Python, HTML, CSS, JS)가 포함된 전용 폴더입니다.
 * `1_PLC File/` : 작업한 PLC 파일을 저장하는 폴더입니다.
 * `2_CATIA File/` : 작업한 CATIA 파일 (CATPART, CATPRODUCT 등)을 저장하는 폴더입니다.
-
----
-
-## 🚀 참고 링크 (Links)
-
-* [노션 폴더 정리페이지 링크](https://sable-beard-26b.notion.site/Unity-Python-208fbf84667880368c81d891d256744b?source=copy_link)
